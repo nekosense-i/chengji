@@ -1,6 +1,24 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<meta charset="UTF-8">
+<script>
+/* Public assets only. The document URL, storage and grade endpoints are unchanged. */
+(() => {
+ const remote = location.protocol === 'https:' && location.hostname === 'chengji.nekosensei.cn';
+ const origin = remote ? 'https://chengji-ely.pages.dev' : location.origin;
+ const hashes = {"assets/app/comparison.6d1e6bfdc32be872.css":"sha384-xeZR8VOrWyVOhFshjow0+IHoWsgBYUgmLFmHu++xLWK7B1Y2Ir6AiHvvQfElCAp1","assets/app/comparison.8e2ccef9969a3647.js":"sha384-wzwpdKn7uOBJDPu+hzu1yOoP2qiTwzm2u5eFxYoF4XFUDUKb8mfLn676A7nJ45zZ","assets/app/core.71804db32dfb9a8c.js":"sha384-9+GUZHyu6r8d4DbHR9vKh/vfUwoPsMWiLzGVdCo76RZ0Hot4YWyhz5PIkET97huL","assets/app/environment.03b33c88c515e790.js":"sha384-HJaEuBKzMfO4tKmOqG95eo7RB4CgVoFS6fegojsT/Gdc+3Pi4PrBtXyewOp4pgfu","assets/app/environment.20d1476068293e45.js":"sha384-QPoyKg2ivodepMtbiEYFyM9eE/vJ3BG1Ja876V0bOUwskWla1M03JGLASAVUhv3j","assets/app/features.3086d13737edc680.js":"sha384-+qkVjmFIgPgRHtbvyQMIslYafNL3DW5bdArlUjxBkivhCEedcQM/Vz+xFpBdmEzp","assets/app/foundation.4a943602dc6351b4.js":"sha384-5iEw60ye6RG//A1oseUcx5Vg6c5AoGqzMO2nZPQNXxbezVCra9KTK2m8KBdrHWKP","assets/app/migration.90fc97a84c196484.css":"sha384-BQUNHLqV1qxoK0KF0BjP0pi8+9f+xBljYu9IepsS8hgxgUZsAYKup2Wynb2zdYIk","assets/app/migration.a544b6186a27763f.js":"sha384-Wp9Ckl/1z1WrAEg4UtHKPRnJbdYkiUrHn/Tp4cjOtHFT+e1sQZR+1PqptDrIcN6k","assets/app/styles.992305f306c1f212.css":"sha384-DYoEHwJMVdDc1QFe1VZHQl6SanQV3lDD6Bn+NViGvtKL54xjBUVFCMV0YMiCtfl2","assets/echarts.min.js":"sha384-o5uz97et3bErHvpKfD4Jz4n0JfhJDWABFuF4NP+iEEDxE1VwMWJ19QGR0lqFZnr6","assets/html2canvas.min.js":"sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H","assets/lz-string.min.js":"sha384-0d+Gr7vM4Drod8E3hXKgciWJSWbjD/opKLLygI9ktiWbuvlDwQLzU46wJ9s5gsp7","assets/pinyin-pro.js":"sha384-cWnZ5a9yvcpdQdwE2WkzcdlFk5b0d0H76QE4u3q84JEQFZf+VAEUZ9WG+BF9cAcF","assets/xlsx.full.min.js":"sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT"};
+ const url = path => new URL(path, remote ? origin + '/' : document.baseURI).href;
+ const decorate = (element, path) => {
+  if (remote && hashes[path]) { element.integrity = hashes[path]; element.crossOrigin = 'anonymous'; element.referrerPolicy = 'no-referrer'; }
+ };
+ window.gk2AssetDelivery = Object.freeze({ origin, url, decorate });
+ window.gk2AssetTag = (kind, path, deferred) => {
+  const extra = remote ? ' integrity="' + hashes[path] + '" crossorigin="anonymous" referrerpolicy="no-referrer"' : '';
+  document.write(kind === 'script' ? '<scr' + 'ipt src="' + url(path) + '"' + extra + (deferred ? ' defer' : '') + '></scr' + 'ipt>' : '<link rel="stylesheet" href="' + url(path) + '"' + extra + '>');
+ };
+})();
+</script>
 <style>/* Keep chart containers measurable while all intermediate legacy UI stays hidden. */
 html.gk2-starting{background:#f5f6fb}
 html.gk2-starting body> :not(#gk2-startup){visibility:hidden!important;opacity:0!important;pointer-events:none!important}
@@ -13,11 +31,11 @@ html.gk2-starting #gk2-startup{position:fixed;inset:0;z-index:2147483647;display
 #gk2-startup button[hidden]{display:none!important}
 #gk2-startup ~ .gk2-dependency-status,.gk2-dependency-status{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:2147483646;padding:10px 18px;border:1px solid #d8dce9;border-radius:10px;background:#fff;color:#475569;box-shadow:0 4px 20px #0001;font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;pointer-events:none}
 </style>
-<script src="assets/app/environment.eed87d316297c145.js"></script>
+<script>gk2AssetTag("script","assets/app/environment.03b33c88c515e790.js",false);</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src https://sync.nekosensei.cn https: http://127.0.0.1:* http://localhost:*; frame-src 'none'; worker-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'">
-<script src="assets/app/environment.20d1476068293e45.js"></script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' https://chengji-ely.pages.dev 'unsafe-inline'; style-src 'self' https://chengji-ely.pages.dev 'unsafe-inline'; img-src 'self' https://chengji-ely.pages.dev data: blob:; connect-src https://sync.nekosensei.cn https: http://127.0.0.1:* http://localhost:*; frame-src 'none'; worker-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'">
+<script>gk2AssetTag("script","assets/app/environment.20d1476068293e45.js",false);</script>
 <title>nekosensei成绩分析系统</title>
     <meta name="description" content="面向日语教学的成绩分析工具，支持成绩录入、统计对比与学生成长档案。">
     <meta property="og:title" content="nekosensei成绩分析系统">
@@ -83,10 +101,10 @@ window.gk2IconMarkup = function(name) {
     return '<svg class="gk2-inline-icon' + medalClass + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + (shapes[shapeName] || shapes.chart) + '</svg>';
 };
 </script>
-    <script defer src="assets/echarts.min.js"></script>
-    <script src="assets/lz-string.min.js"></script>
-    <script src="assets/app/foundation.4a943602dc6351b4.js"></script>
-    <link rel="stylesheet" href="assets/app/styles.992305f306c1f212.css">
+    <script>gk2AssetTag("script","assets/echarts.min.js",true);</script>
+    <script>gk2AssetTag("script","assets/lz-string.min.js",false);</script>
+    <script>gk2AssetTag("script","assets/app/foundation.4a943602dc6351b4.js",false);</script>
+    <script>gk2AssetTag("style","assets/app/styles.992305f306c1f212.css",false);</script>
     
     
 
@@ -99,7 +117,7 @@ window.gk2IconMarkup = function(name) {
     <div id="auth-overlay">
         <div class="auth-card">
             <div class="auth-brand">
-                <img class="auth-illustration" src="assets/login-study-cat.png" alt="可爱猫咪专心学习贴纸">
+                <script>document.write("<img class=\"auth-illustration\" src=\""+gk2AssetDelivery.url("assets/login-study-cat.png")+"\" alt=\"\u53ef\u7231\u732b\u54aa\u4e13\u5fc3\u5b66\u4e60\u8d34\u7eb8\">");</script>
                 <div class="auth-title">日语成绩分析系统</div>
             </div>
             <div class="auth-row">
@@ -121,7 +139,7 @@ window.gk2IconMarkup = function(name) {
 
     <!-- Native V2 shell: no legacy navigation is rendered or replaced at startup. -->
     <aside class="sidebar gk2-sidebar" data-gk2-native-shell>
-      <div class="gk2-brand"><div class="gk2-brand-mark"><img class="gk2-icon gk2-cat-logo" id="gk2-cat-logo" src="assets/cat-motion/cat-reading-01.png" alt="" aria-hidden="true" draggable="false" decoding="async"></div><div><b>Gakuten</b><small>2.0</small></div></div>
+      <div class="gk2-brand"><div class="gk2-brand-mark"><script>document.write("<img class=\"gk2-icon gk2-cat-logo\" id=\"gk2-cat-logo\" src=\""+gk2AssetDelivery.url("assets/cat-motion/cat-reading-01.png")+"\" alt=\"\" aria-hidden=\"true\" draggable=\"false\" decoding=\"async\">");</script></div><div><b>Gakuten</b><small>2.0</small></div></div>
       <div class="gk2-caption">Teaching workspace</div>
       <div class="nav-menu" role="tablist" aria-label="主要页面"><button type="button" class="nav-item active" role="tab" data-gk2-nav="workbench" title="考情" aria-selected="true" onclick="gk2.navigate('workbench')"><svg class="gk2-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z M9 21v-8h6v8"/></svg><span class="gk2-nav-label">考情</span></button>
 <button type="button" class="nav-item" role="tab" data-gk2-nav="details" title="成绩" aria-selected="false" onclick="gk2.navigate('details')"><svg class="gk2-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v18H4Z M4 8h16 M9 8v13 M9 13h11 M9 17h11"/></svg><span class="gk2-nav-label">成绩</span></button>
@@ -750,8 +768,8 @@ window.gk2IconMarkup = function(name) {
         </div>
     </dialog>
 
-    <script src="assets/app/core.a5f90f77149b299c.js"></script>
-<script src="assets/app/features.3241f97ad5b98e23.js"></script>
+    <script>gk2AssetTag("script","assets/app/core.71804db32dfb9a8c.js",false);</script>
+<script>gk2AssetTag("script","assets/app/features.3086d13737edc680.js",false);</script>
 <script type="application/gakuten-lazy" data-gk2-lazy-js="migration" data-src="assets/app/migration.a544b6186a27763f.js"></script>
 <script type="application/gakuten-lazy" data-gk2-lazy-js="comparison" data-src="assets/app/comparison.8e2ccef9969a3647.js"></script>
 </body>
