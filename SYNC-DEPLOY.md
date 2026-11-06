@@ -17,7 +17,7 @@ Gakuten 阿里云同步优化（2026-11-06）
 
 ```bash
 git -c http.version=HTTP/1.1 fetch origin feature/gakuten-sync-optimization-20261106
-commit=$(git rev-parse origin/feature/gakuten-sync-optimization-20261106)
+commit=$(git rev-parse FETCH_HEAD)
 git show "$commit:scripts/deploy-gakuten-sync.sh" > /tmp/deploy-gakuten-sync.sh
 bash /tmp/deploy-gakuten-sync.sh --check "$commit"
 # 核对上述 SHA 与已验收版本一致，获得生产操作确认后：
