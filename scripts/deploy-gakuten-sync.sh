@@ -2,6 +2,7 @@
 # Run as admin from the existing chengji Git checkout. --check is read-only.
 # --apply creates an online SQLite backup, then publishes only two JS files + HTML.
 set -euo pipefail
+trap 'printf "Deployment stopped at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 mode=${1:---check}
 live=/var/www/nekosensei/chengji
 database=/var/lib/nekosensei-sync/sync.sqlite
@@ -19,7 +20,8 @@ fi
 [[ "$mode" == --check || "$mode" == --apply ]]
 commit=${2:?Specify the exact tested Git commit}
 [[ "$commit" =~ ^[0-9a-f]{40}$ ]]
-[[ -f "$live/Gakuten-2.0.html" && -f "$database" ]]
+[[ -f "$live/Gakuten-2.0.html" ]]
+sudo test -f "$database"
 systemctl is-active --quiet nekosync-prod.service
 printf '%s\n' '91fb9b245bfc997cb5d93f24dd1e6675b440b6d5e150ae0601a06093863e37af  /opt/nekosensei-sync-prod/src/gakuten-service.js' | sha256sum --check --status
 printf '%s\n' '832ff4e802a7796f75d8ae61a31cb05e04a8bf1c3af6245e7d6c27abe1b735fc  /opt/nekosensei-sync-prod/src/gakuten-merge.js' | sha256sum --check --status
