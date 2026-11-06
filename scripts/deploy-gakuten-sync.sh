@@ -62,7 +62,7 @@ if [[ "$mode" == --check ]]; then
   echo 'Check passed. No production files or database were changed.'
   exit
 fi
-sudo -v
+sudo -n true || sudo -v
 backup=/var/backups/nekosensei-sync/gakuten-frontend-$(TZ=Asia/Shanghai date +%Y%m%d_%H%M%S)
 sudo install -d -m 700 "$backup"
 sudo python3 - "$database" "$backup" "$commit" <<'PY'
