@@ -1,0 +1,332 @@
+{
+  "data": {
+    "students": [
+      {
+        "id": "zero",
+        "name": "虚构学生1",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "partial",
+        "name": "虚构学生2",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "absent",
+        "name": "虚构学生3",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "estimated",
+        "name": "虚构学生4",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "missing",
+        "name": "虚构学生5",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "pass",
+        "name": "虚构学生6",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "excellent",
+        "name": "虚构学生7",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "tie",
+        "name": "虚构学生8",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "history",
+        "name": "虚构学生9",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      },
+      {
+        "id": "mismatch",
+        "name": "虚构学生10",
+        "campus": "虚构校区",
+        "grade": "2024级",
+        "teachingClass": "虚构A班",
+        "adminClass": "1班",
+        "tags": [],
+        "classHistory": [
+          {
+            "campus": "虚构校区",
+            "teachingClass": "虚构A班",
+            "from": "2024-09-01",
+            "to": null
+          }
+        ],
+        "_ts": 1
+      }
+    ],
+    "exams": [
+      {
+        "id": "fixture-exam",
+        "name": "虚构口径测验",
+        "date": "2026-10-01",
+        "grade": "2024级",
+        "campuses": [
+          "虚构校区"
+        ],
+        "types": [
+          {
+            "name": "A",
+            "max": 50
+          },
+          {
+            "name": "B",
+            "max": 50
+          }
+        ],
+        "maxTotal": 100,
+        "_ts": 1
+      }
+    ],
+    "scores": [
+      {
+        "studentId": "zero",
+        "examId": "fixture-exam",
+        "details": {
+          "A": 0,
+          "B": 0
+        },
+        "total": 0,
+        "estimatedTotal": 40,
+        "examAbsent": false,
+        "_ts": 1
+      },
+      {
+        "studentId": "partial",
+        "examId": "fixture-exam",
+        "details": {
+          "A": 20
+        },
+        "total": 20,
+        "estimatedTotal": 40,
+        "examAbsent": false,
+        "_ts": 1
+      },
+      {
+        "studentId": "absent",
+        "examId": "fixture-exam",
+        "details": {},
+        "total": 0,
+        "estimatedTotal": 40,
+        "examAbsent": true,
+        "_ts": 1
+      },
+      {
+        "studentId": "estimated",
+        "examId": "fixture-exam",
+        "details": {
+          "A": 50,
+          "B": 50
+        },
+        "total": 100,
+        "estimatedTotal": 40,
+        "examAbsent": false,
+        "_ts": 1,
+        "isEstimated": true
+      },
+      {
+        "studentId": "pass",
+        "examId": "fixture-exam",
+        "details": {
+          "A": 30,
+          "B": 30
+        },
+        "total": 60,
+        "estimatedTotal": 40,
+        "examAbsent": false,
+        "_ts": 1
+      },
+      {
+        "studentId": "excellent",
+        "examId": "fixture-exam",
+        "details": {
+          "A": 40,
+          "B": 40
+        },
+        "total": 80,
+        "estimatedTotal": 40,
+        "examAbsent": false,
+        "_ts": 1
+      },
+      {
+        "studentId": "tie",
+        "examId": "fixture-exam",
+        "details": {
+          "A": 40,
+          "B": 40
+        },
+        "total": 80,
+        "estimatedTotal": 40,
+        "examAbsent": false,
+        "_ts": 1
+      },
+      {
+        "studentId": "history",
+        "examId": "fixture-exam",
+        "details": {},
+        "total": 70,
+        "estimatedTotal": 40,
+        "examAbsent": false,
+        "_ts": 1
+      },
+      {
+        "studentId": "mismatch",
+        "examId": "fixture-exam",
+        "details": {
+          "A": 30,
+          "B": 30
+        },
+        "total": 50,
+        "estimatedTotal": 40,
+        "examAbsent": false,
+        "_ts": 1
+      }
+    ],
+    "examTemplates": []
+  },
+  "deleted": {
+    "students": {},
+    "exams": {},
+    "scores": {},
+    "examTemplates": {}
+  },
+  "ts": 1,
+  "syncMeta": {},
+  "globalFocus": {
+    "campuses": [],
+    "grades": [
+      "2024级"
+    ],
+    "phases": [],
+    "tClasses": [],
+    "tags": []
+  },
+  "currentExamId": "fixture-exam"
+}

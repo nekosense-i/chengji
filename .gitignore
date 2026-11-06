@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+/reports/
+/backups/
+*.sqlite
+*.sqlite-*
+*.db
+.env
+.env.*
+*.pem
+*.key
