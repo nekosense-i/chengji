@@ -16,7 +16,30 @@ def build(destination):
     anchor = '            return { Store, Sync, UI };'
     if core.count(anchor) != 1:
         raise RuntimeError('Production AppCore anchor changed')
-    core = core.replace(anchor, (ROOT / 'src/gakuten-sync-optimization.js').read_text() + '\n' + anchor)
+    grade_aggregate_replacements = [
+        (
+            'gradeStudentIds.includes(s.studentId) && Utils.isActualScore(s)',
+            'gradeStudentIds.includes(s.studentId) && Utils.isValidGradeAggregateScore(s, exam)',
+            2,
+        ),
+        (
+            'gradeStus.includes(s.studentId) && Utils.isActualScore(s)).sort((a,b)=>b.total - a.total);',
+            'gradeStus.includes(s.studentId) && Utils.isValidGradeAggregateScore(s, ex)).sort((a,b)=>b.total - a.total);',
+            1,
+        ),
+    ]
+    for old, new, expected in grade_aggregate_replacements:
+        if core.count(old) != expected:
+            raise RuntimeError('Production grade aggregate anchor changed: ' + old[:80])
+        core = core.replace(old, new)
+    core = core.replace(
+        anchor,
+        (ROOT / 'src/gakuten-sync-optimization.js').read_text()
+        + '\n'
+        + (ROOT / 'src/grade-statistics-optimization.js').read_text()
+        + '\n'
+        + anchor,
+    )
     total_anchor = '  out._ts=Math.max(time(a._ts),time(b._ts),...Object.values(out._fieldTs));'
     if core.count(total_anchor) != 1:
         raise RuntimeError('Production field merge anchor changed')
