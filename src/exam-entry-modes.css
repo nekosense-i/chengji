@@ -1,0 +1,44 @@
+/* All top-level exam operations share the same outer height. */
+#gk2-exam-operations > .gk2-action-menu-body > button,
+#gk2-exam-operations .gk2-entry-quickfill-menu-control,
+#gk2-exam-operations .gk2-entry-mode-control {
+    height: 42px !important; min-height: 42px !important; max-height: 42px !important;
+    box-sizing: border-box; flex-shrink: 0;
+}
+#gk2-exam-operations .gk2-entry-quickfill-menu-control > button {
+    height: 40px !important; min-height: 40px !important; max-height: 40px !important;
+    font-size: 14px !important;
+}
+#gk2-exam-operations .gk2-entry-mode-section { display: flex; flex-direction: column; gap: 8px; }
+#gk2-exam-operations .gk2-entry-mode-control {
+    display: flex; overflow: hidden; border: 1px solid #d1e1f8; border-radius: 8px; background: #edf4ff;
+}
+#gk2-exam-operations .gk2-entry-mode-control > button {
+    height: 40px !important; min-height: 40px !important; max-height: 40px !important;
+    margin: 0; border: 0 !important; border-radius: 0 !important;
+    background: transparent !important; color: #376ba7 !important;
+}
+#gk2-exam-operations #gk2-entry-mode-toggle {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    flex: 1; width: auto; min-width: 0; white-space: nowrap;
+}
+#gk2-exam-operations .gk2-entry-mode-control > .gk2-entry-mode-settings-toggle {
+    display: grid; place-items: center; justify-content: center;
+    flex: 0 0 36px; width: 36px; min-width: 36px; padding: 0 !important;
+    border-left: 1px solid #d1e1f8 !important;
+}
+#gk2-exam-operations .gk2-entry-mode-control svg { width: 18px; height: 18px; flex: none; }
+#gk2-exam-operations .gk2-entry-mode-control > button:hover { background: #e1edff !important; }
+#gk2-exam-operations .gk2-entry-mode-options,
+#gk2-exam-operations .gk2-entry-mode-settings {
+    display: flex; flex-direction: column; gap: 8px; padding: 10px;
+    border: 1px solid #e2e8f1; border-radius: 9px; background: #fafcff;
+}
+#gk2-exam-operations .gk2-entry-mode-options[hidden],
+#gk2-exam-operations .gk2-entry-mode-settings[hidden] { display: none !important; }
+#gk2-exam-operations .gk2-entry-mode-options button[aria-pressed="true"] {
+    color: #376ba7 !important; background: #edf4ff !important; border-color: #bdd4f3 !important;
+}
+#gk2-exam-operations .gk2-entry-mode-settings strong { font-size: 12px; color: #63728a; }
+#gk2-exam-operations .gk2-entry-mode-settings label { justify-content: flex-start; color: #46566f; }
+#gk2-exam-operations .gk2-entry-mode-settings input { width: 14px; height: 14px; margin: 0; accent-color: #6672d8; }

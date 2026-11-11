@@ -38,8 +38,27 @@ def build(destination):
         + '\n'
         + (ROOT / 'src/grade-statistics-optimization.js').read_text()
         + '\n'
+        + (ROOT / 'src/exam-entry-modes.js').read_text()
+        + '\n'
         + anchor,
     )
+    entry_replacements = [
+        ('window.app.ui.saveCorrectCount', 'window.app.ui.saveEntryCount'),
+        ('if (isCount) this.saveCorrectCount(', 'if (isCount) this.saveEntryCount('),
+        ('${t.name} 正确题数（共', '${t.name} ${this._getCountEntryLabel(exam)}（共'),
+        ('data-entry-kind="${entryKind}" data-field=', 'data-entry-kind="${entryKind}" data-count-mode="${this._getExamEntryMode(exam)}" data-field='),
+        ('this._getCountEntryScorePreview(inputValue, t.max, t.questionCount)', 'this._getCountEntryScorePreview(inputValue, t.max, t.questionCount, this._getExamEntryMode(exam))'),
+        ('this._getCountEntryScorePreview(input.value, input.dataset.scoreMax, input.dataset.questionCount)', 'this._getCountEntryScorePreview(input.value, input.dataset.scoreMax, input.dataset.questionCount, input.dataset.countMode)'),
+        ("countInput?record?.questionCounts?.[input.dataset.field]", "countInput?this._getSavedEntryInputValue(input,record)"),
+        ("${isCount ? '正确题数' : '分数'}", "${isCount ? this._getCountEntryLabel(this.store.state.data.exams.find(e=>e.id===eid)) : '分数'}"),
+    ]
+    for old, new in entry_replacements:
+        if old not in core:
+            raise RuntimeError('Production entry anchor changed: ' + old[:80])
+        core = core.replace(old, new)
+    # Count validation applies to both correct and incorrect question counts.
+    start, end = core.index('                renderExamTables(eid) {'), core.index('                saveVal(sid, eid, tn, val, tid, max = 0, inputEl) {')
+    core = core[:start] + core[start:end].replace('正确题数', '题数') + core[end:]
     total_anchor = '  out._ts=Math.max(time(a._ts),time(b._ts),...Object.values(out._fieldTs));'
     if core.count(total_anchor) != 1:
         raise RuntimeError('Production field merge anchor changed')
@@ -59,12 +78,25 @@ def build(destination):
         if features.count(old) != 1:
             raise RuntimeError('Production sync UI anchor changed: ' + old[:80])
         features = features.replace(old, new, 1)
+    mode_menu = [line for line in features.splitlines() if line.startswith('    if(hasCountTypes){')]
+    if len(mode_menu) != 1:
+        raise RuntimeError('Production entry mode menu anchor changed')
+    features = features.replace(mode_menu[0], '    if(hasCountTypes)more.body.append(ui.createExamEntryModeControl(activeExam));', 1)
+    for old, new in [
+        ('function configureEntryMenu(more){', 'function configureEntryMenu(more){\n  window.app.ui.configureExamEntryMenu(more.root);'),
+        ("countInput?record?.questionCounts?.[input.dataset.field]", "countInput?ui._getSavedEntryInputValue(input,record)"),
+        ("if(input&&/^\\d+$/.test(String(value??''))&&Number(value)>=0)input.value=String(value);", "if(input&&ret!==false)input.value=ui._getSavedEntryInputValue(input,ui.store.getScore(args[0],args[1]));"),
+    ]:
+        if features.count(old) != 1:
+            raise RuntimeError('Production count display anchor changed: ' + old[:80])
+        features = features.replace(old, new, 1)
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
     idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'
     if styles.count(idle_scope_shadow) != 1:
         raise RuntimeError('Production idle scope shadow anchor changed')
     styles = styles.replace(idle_scope_shadow, 'box-shadow:none;', 1)
+    styles += '\n' + (ROOT / 'src/exam-entry-modes.css').read_text()
     for old, content in [(core_path, core), (features_path, features), (styles_path, styles)]:
         label = old.split('/')[-1].split('.')[0]
         new = f'assets/app/{label}.{hashlib.sha256(content.encode()).hexdigest()[:16]}{Path(old).suffix}'
