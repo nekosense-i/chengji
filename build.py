@@ -8,6 +8,39 @@ import shutil
 ROOT = Path(__file__).resolve().parent
 
 
+def add_disclosure_core(core):
+    anchor = '            return { Store, Sync, UI };'
+    old = "const isOpen = panel.style.display !== 'none';\n                    panel.style.display = isOpen ? 'none' : 'flex';"
+    if core.count(anchor) != 1 or core.count(old) != 1:
+        raise RuntimeError('Production disclosure core anchor changed')
+    core = core.replace(anchor, (ROOT / 'src/disclosure-motion.js').read_text() + '\n' + anchor, 1)
+    return core.replace(old, "const isOpen = window.gk2Disclosure.isOpen(panel);\n                    window.gk2Disclosure.set(panel, !isOpen, { display: 'flex' });", 1)
+
+
+def add_disclosure_features(features):
+    replacements = [
+        ("String(d.open)));bindHoverExpand(d,d,()=>{d.open=true;},()=>{d.open=false;});s.addEventListener('click',event=>{if(d.open&&event.detail>0&&d.matches(':hover'))event.preventDefault();});",
+         "String(window.gk2Disclosure.menuOpen(d))));bindHoverExpand(d,d,()=>window.gk2Disclosure.setMenu(d,true),()=>window.gk2Disclosure.setMenu(d,false));s.addEventListener('click',event=>{event.preventDefault();const open=window.gk2Disclosure.menuOpen(d);if(open&&event.detail>0&&d.matches(':hover'))return;window.gk2Disclosure.setMenu(d,!open);});", 1),
+        ("b.closest('details').open=false;", "window.gk2Disclosure.setMenu(b.closest('details'),false);", 1),
+        ("open.forEach(m=>m.open=false)", "open.forEach(m=>window.gk2Disclosure.setMenu(m,false))", 1),
+        ("quickFillSettings.hidden=!quickFillSettings.hidden;quickFillSettingsToggle.setAttribute('aria-expanded',String(!quickFillSettings.hidden));",
+         "const open=!window.gk2Disclosure.isOpen(quickFillSettings);window.gk2Disclosure.set(quickFillSettings,open);quickFillSettingsToggle.setAttribute('aria-expanded',String(open));", 1),
+        ("quickFillSettings.hidden=true;quickFillSettingsToggle.setAttribute('aria-expanded','false');",
+         "window.gk2Disclosure.set(quickFillSettings,false,{immediate:true});quickFillSettingsToggle.setAttribute('aria-expanded','false');", 1),
+        ("$('#compare-advanced-panel').style.display!=='none'", "window.gk2Disclosure.isOpen($('#compare-advanced-panel'))", 3),
+        ("const selector = '#view-students details.tree-level, #view-exams details.gk2-entry-class-group';",
+         "const selector = '#view-students details.tree-level, #view-exams details.gk2-entry-class-group, details.gk2-chart-data, .gk2-drill details';", 1),
+        ("const disclosureEasing = 'cubic-bezier(.3, .05, .7, .95)';", "const disclosureEasing = 'cubic-bezier(.22, 1, .36, 1)';", 1),
+        ("const duration = Math.round(baseDuration / 1.3 / 1.3);", "const duration = Math.round(baseDuration);", 1),
+        ("function suspended() { return document.hidden; }", "function suspended() { return document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches; }", 1),
+    ]
+    for old, new, expected in replacements:
+        if features.count(old) != expected:
+            raise RuntimeError('Production disclosure feature anchor changed: ' + old[:80])
+        features = features.replace(old, new)
+    return features
+
+
 def build(destination):
     html = (ROOT / 'src/release/Gakuten-2.0.base.html').read_text()
     generated = {}
@@ -60,6 +93,7 @@ def build(destination):
     # Count validation applies to both correct and incorrect question counts.
     start, end = core.index('                renderExamTables(eid) {'), core.index('                saveVal(sid, eid, tn, val, tid, max = 0, inputEl) {')
     core = core[:start] + core[start:end].replace('正确题数', '题数') + core[end:]
+    core = add_disclosure_core(core)
     total_anchor = '  out._ts=Math.max(time(a._ts),time(b._ts),...Object.values(out._fieldTs));'
     if core.count(total_anchor) != 1:
         raise RuntimeError('Production field merge anchor changed')
@@ -91,6 +125,7 @@ def build(destination):
         if features.count(old) != 1:
             raise RuntimeError('Production count display anchor changed: ' + old[:80])
         features = features.replace(old, new, 1)
+    features = add_disclosure_features(features)
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
     idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'
@@ -98,6 +133,7 @@ def build(destination):
         raise RuntimeError('Production idle scope shadow anchor changed')
     styles = styles.replace(idle_scope_shadow, 'box-shadow:none;', 1)
     styles += '\n' + (ROOT / 'src/exam-entry-modes.css').read_text()
+    styles += '\n' + (ROOT / 'src/disclosure-motion.css').read_text()
     for old, content in [(core_path, core), (features_path, features), (styles_path, styles)]:
         label = old.split('/')[-1].split('.')[0]
         new = f'assets/app/{label}.{hashlib.sha256(content.encode()).hexdigest()[:16]}{Path(old).suffix}'

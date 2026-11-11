@@ -97,10 +97,14 @@
         if (settingsIcon) gear.replaceChildren(settingsIcon.cloneNode(true));
         const options = section.querySelector('#gk2-entry-mode-options');
         const settings = section.querySelector('#gk2-entry-mode-settings');
-        const show = (panel, button, open) => { panel.hidden = !open; button.setAttribute('aria-expanded', String(open)); };
+        const show = (panel, button, open) => {
+            if (!open && panel.contains(document.activeElement)) button.focus({ preventScroll: true });
+            window.gk2Disclosure.set(panel, open);
+            button.setAttribute('aria-expanded', String(open));
+        };
         trigger.innerHTML = `<span>${labels[this._getExamEntryMode(exam)]}</span>${window.gk2IconMarkup('chevron-down')}`;
-        trigger.onclick = () => { show(options, trigger, options.hidden); show(settings, gear, false); };
-        gear.onclick = () => { show(settings, gear, settings.hidden); show(options, trigger, false); };
+        trigger.onclick = () => { show(options, trigger, !window.gk2Disclosure.isOpen(options)); show(settings, gear, false); };
+        gear.onclick = () => { show(settings, gear, !window.gk2Disclosure.isOpen(settings)); show(options, trigger, false); };
         for (const [mode, label] of Object.entries(labels)) {
             const choice = document.createElement('button');
             choice.type = 'button'; choice.className = 'secondary'; choice.textContent = label;
@@ -133,7 +137,7 @@
             if (root.open) positionEntryMenu(root);
             else root.querySelectorAll('.gk2-entry-mode-section [aria-expanded]').forEach(button => {
                 button.setAttribute('aria-expanded', 'false');
-                document.getElementById(button.getAttribute('aria-controls')).hidden = true;
+                window.gk2Disclosure.set(document.getElementById(button.getAttribute('aria-controls')), false, { immediate: true });
             });
         });
     };

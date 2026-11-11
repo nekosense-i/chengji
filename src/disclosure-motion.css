@@ -1,0 +1,9 @@
+/* Managed panels use the same motion on entry and exit, without a second CSS entrance. */
+[data-gk2-disclosure] { animation: none !important; }
+#gk2-entry-mode-toggle > svg {
+    transition: transform 280ms cubic-bezier(.22,1,.36,1);
+}
+#gk2-entry-mode-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+    #gk2-entry-mode-toggle > svg { transition: none; }
+}
