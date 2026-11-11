@@ -46,6 +46,7 @@ def build(destination):
         ('window.app.ui.saveCorrectCount', 'window.app.ui.saveEntryCount'),
         ('if (isCount) this.saveCorrectCount(', 'if (isCount) this.saveEntryCount('),
         ('${t.name} 正确题数（共', '${t.name} ${this._getCountEntryLabel(exam)}（共'),
+        ("? '保留原分' : '题数') : ''}", "? '保留原分' : (this._getExamEntryMode(exam) === 'wrong' ? '错题' : '题数')) : ''}"),
         ('data-entry-kind="${entryKind}" data-field=', 'data-entry-kind="${entryKind}" data-count-mode="${this._getExamEntryMode(exam)}" data-field='),
         ('this._getCountEntryScorePreview(inputValue, t.max, t.questionCount)', 'this._getCountEntryScorePreview(inputValue, t.max, t.questionCount, this._getExamEntryMode(exam))'),
         ('this._getCountEntryScorePreview(input.value, input.dataset.scoreMax, input.dataset.questionCount)', 'this._getCountEntryScorePreview(input.value, input.dataset.scoreMax, input.dataset.questionCount, input.dataset.countMode)'),

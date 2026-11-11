@@ -93,6 +93,8 @@
         </div>`;
         const trigger = section.querySelector('#gk2-entry-mode-toggle');
         const gear = section.querySelector('.gk2-entry-mode-settings-toggle');
+        const settingsIcon = document.querySelector('.sidebar-bottom [aria-label="系统设置"] svg');
+        if (settingsIcon) gear.replaceChildren(settingsIcon.cloneNode(true));
         const options = section.querySelector('#gk2-entry-mode-options');
         const settings = section.querySelector('#gk2-entry-mode-settings');
         const show = (panel, button, open) => { panel.hidden = !open; button.setAttribute('aria-expanded', String(open)); };

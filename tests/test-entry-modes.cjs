@@ -140,6 +140,17 @@ const web = http.createServer((req, res) => {
         assert.equal(await other.locator('input[data-sid="zero"][data-field="A"]').first().getAttribute('data-count-mode'), 'count');
         console.log('PASS menu row heights match, defaults survive reload, and a second browser keeps its own mode.');
         }
+        if (process.env.ENTRY_UI_ONLY) {
+            await page.evaluate(() => app.ui.toggleExamEntryMode('fixture-exam', 'wrong'));
+            assert.equal(await field('A').getAttribute('placeholder'), '错题');
+            assert.equal(await field('B').getAttribute('placeholder'), '');
+            const gears = await page.evaluate(() => ['.gk2-entry-mode-settings-toggle svg', '.gk2-entry-quickfill-settings-toggle svg'].map(selector => document.querySelector(selector).outerHTML));
+            assert.equal(gears[0], gears[1]);
+            await page.evaluate(() => app.ui.toggleExamEntryMode('fixture-exam', 'count'));
+            assert.equal(await field('A').getAttribute('placeholder'), '题数');
+            await page.evaluate(() => app.ui.toggleExamEntryMode('fixture-exam', 'wrong'));
+            console.log('PASS wrong-mode placeholder is 错题, correct-mode placeholder stays 题数, and both gear icons match.');
+        }
         if (process.env.ENTRY_SCREENSHOT) {
             await menu(); await page.locator('#gk2-entry-mode-toggle').click();
             await page.screenshot({ path: process.env.ENTRY_SCREENSHOT });
