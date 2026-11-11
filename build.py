@@ -59,9 +59,15 @@ def build(destination):
         if features.count(old) != 1:
             raise RuntimeError('Production sync UI anchor changed: ' + old[:80])
         features = features.replace(old, new, 1)
-    for old, content in [(core_path, core), (features_path, features)]:
+    styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
+    styles = (ROOT / styles_path).read_text()
+    idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'
+    if styles.count(idle_scope_shadow) != 1:
+        raise RuntimeError('Production idle scope shadow anchor changed')
+    styles = styles.replace(idle_scope_shadow, 'box-shadow:none;', 1)
+    for old, content in [(core_path, core), (features_path, features), (styles_path, styles)]:
         label = old.split('/')[-1].split('.')[0]
-        new = f'assets/app/{label}.{hashlib.sha256(content.encode()).hexdigest()[:16]}.js'
+        new = f'assets/app/{label}.{hashlib.sha256(content.encode()).hexdigest()[:16]}{Path(old).suffix}'
         html = html.replace(old, new)
         generated[new] = content
     destination.mkdir(parents=True, exist_ok=True)
