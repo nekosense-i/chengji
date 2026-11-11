@@ -89,7 +89,7 @@
         </div>
         <div id="gk2-entry-mode-options" class="gk2-entry-mode-options" role="group" aria-label="选择本次录入方式" hidden></div>
         <div id="gk2-entry-mode-settings" class="gk2-entry-mode-settings" role="group" aria-label="默认录入模式" hidden>
-            <strong>默认录入模式</strong><small>仅在当前浏览器生效，不影响其他设备；未设置时沿用原录入方式。</small>
+            <strong>默认录入模式</strong>
         </div>`;
         const trigger = section.querySelector('#gk2-entry-mode-toggle');
         const gear = section.querySelector('.gk2-entry-mode-settings-toggle');
