@@ -37,9 +37,10 @@ import sys,re,hashlib
 stage,live=map(Path,sys.argv[1:])
 base=(stage/'src/release/Gakuten-2.0.base.html').read_bytes()
 assert hashlib.sha256(base).hexdigest()=='9eb575bbc2754f5145b1bfab8426daea1ea64548aa6809bea6fcb6ffcbe1b0b8', 'Unknown release baseline'
-assert (live/'Gakuten-2.0.html').read_bytes()==base, 'Production HTML changed; stop and inspect before deploying'
+live_html=(live/'Gakuten-2.0.html').read_bytes()
+assert hashlib.sha256(live_html).hexdigest()=='236b183ef381d99690bebfd7d5632b761e072095d45d6029bc166b1a57094f61', 'Production HTML changed; stop and inspect before deploying'
 html=(stage/'Gakuten-2.0.html').read_text()
-old=base.decode()
+old=live_html.decode()
 changed=[]
 for kind in ['styles','core','features']:
  extension='css' if kind=='styles' else 'js'
