@@ -138,6 +138,10 @@ def build(destination):
     create_start = core.index("                openExamModal() {")
     core = core[:create_start] + re.sub(r"const defaultTemplate = this.getDefaultExamTemplate\(\);\s+if \(defaultTemplate\) \{.*?\} else \{(.*?)\n[ \t]*\}(?=\s+document.getElementById\('modal-exam'\).showModal)", r"\1", core[create_start:], count=1, flags=re.S)
     core = core.replace("const anchor = badge && badge.getClientRects().length ? badge : title;", "const anchor = summary.querySelector('[data-class-template-badge]') || (badge && badge.getClientRects().length ? badge : title);")
+    # Format displayed JLPT maxima without rounding validation or scoring inputs.
+    jlpt_display_max = "${window.gk2JLPT.ruleForExam(exam) ? Number(t.max).toFixed(1) : t.max}"
+    core = core.replace("${t.name}：${t.max}分", "${t.name}：" + jlpt_display_max + "分")
+    core = core.replace("${t.name} 分数（满分 ${t.max}）", "${t.name} 分数（满分 " + jlpt_display_max + "）")
     exam_create_anchor = '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, entryMode });'
     if core.count(exam_create_anchor) != 1:
         raise RuntimeError('Production exam creation anchor changed')
