@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run as admin from the existing chengji Git checkout. --check is read-only.
-# --apply creates an online SQLite backup, then publishes only two JS files + HTML.
+# --apply creates an online SQLite backup, then publishes the changed style/script bundles + HTML.
 set -euo pipefail
 trap 'printf "Deployment stopped at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 mode=${1:---check}
@@ -41,8 +41,9 @@ assert (live/'Gakuten-2.0.html').read_bytes()==base, 'Production HTML changed; s
 html=(stage/'Gakuten-2.0.html').read_text()
 old=base.decode()
 changed=[]
-for kind in ['core','features']:
- pattern=r'assets/app/'+kind+r'\.[a-f0-9]+\.js'
+for kind in ['styles','core','features']:
+ extension='css' if kind=='styles' else 'js'
+ pattern=r'assets/app/'+kind+r'\.[a-f0-9]+\.'+extension
  prior=re.search(pattern,old)[0]; current=re.search(pattern,html)[0]
  assert (live/prior).read_bytes()==(stage/prior).read_bytes(), 'Production '+kind+' changed'
  assert hashlib.sha256((stage/current).read_bytes()).hexdigest()[:16] in current, 'Invalid generated asset hash'

@@ -1,4 +1,4 @@
-"""Build the verified production baseline plus the focused Aliyun sync update."""
+"""Build the verified production baseline and its focused local feature updates."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -73,6 +73,8 @@ def build(destination):
         + '\n'
         + (ROOT / 'src/exam-entry-modes.js').read_text()
         + '\n'
+        + (ROOT / 'src/jlpt-score-entry.js').read_text()
+        + '\n'
         + anchor,
     )
     entry_replacements = [
@@ -90,6 +92,15 @@ def build(destination):
         if old not in core:
             raise RuntimeError('Production entry anchor changed: ' + old[:80])
         core = core.replace(old, new)
+    exam_create_anchor = '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, entryMode });'
+    if core.count(exam_create_anchor) != 1:
+        raise RuntimeError('Production exam creation anchor changed')
+    core = core.replace(
+        exam_create_anchor,
+        '                        const assessmentRule = window.gk2JLPT.templateFor(document.getElementById("m-template-select")?.value)?.assessmentRule;\n'
+        '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, entryMode, ...(assessmentRule ? { assessmentRule: JSON.parse(JSON.stringify(assessmentRule)) } : {}) });',
+        1,
+    )
     # Count validation applies to both correct and incorrect question counts.
     start, end = core.index('                renderExamTables(eid) {'), core.index('                saveVal(sid, eid, tn, val, tid, max = 0, inputEl) {')
     core = core[:start] + core[start:end].replace('正确题数', '题数') + core[end:]
@@ -126,6 +137,37 @@ def build(destination):
             raise RuntimeError('Production count display anchor changed: ' + old[:80])
         features = features.replace(old, new, 1)
     features = add_disclosure_features(features)
+    overview_replacements = [
+        (
+            'const avg=mean(values),pass=max*.6,excellent=max*.8;',
+            'const jlptRule=window.gk2JLPT.ruleForExam(exam),avg=mean(values),pass=jlptRule?jlptRule.passTotal:max*.6,excellent=jlptRule?null:max*.8;',
+        ),
+        (
+            'const passRows=valid.filter(s=>s.rec.total>=pass),excellentRows=valid.filter(s=>s.rec.total>=excellent);',
+            'const sectionPassRows=jlptRule?valid.filter(s=>window.gk2JLPT.evaluate(s.rec,exam).sectionPass):[],passRows=valid.filter(s=>jlptRule?window.gk2JLPT.evaluate(s.rec,exam).passed:s.rec.total>=pass),excellentRows=jlptRule?sectionPassRows:valid.filter(s=>s.rec.total>=excellent);',
+        ),
+        (
+            'const history=ui.store.state.data.exams.filter(e=>e.grade===exam.grade&&e.date<=exam.date&&eligible(e).length&&e.maxTotal>0).sort((a,b)=>a.date.localeCompare(b.date));',
+            "const history=ui.store.state.data.exams.filter(e=>e.grade===exam.grade&&e.date<=exam.date&&eligible(e).length&&e.maxTotal>0&&(!jlptRule||(e.assessmentRule?.kind==='jlpt-official'&&e.assessmentRule.level===jlptRule.level))).sort((a,b)=>a.date.localeCompare(b.date));",
+        ),
+        (
+            'G.snapshot={exam,all,valid,max,avg,passRate,excRate,zero:zero.length,absent:absent.length,missing:missing.length,partial:partial.length,delta,statistics};',
+            'G.snapshot={exam,all,valid,max,avg,passRate,excRate,zero:zero.length,absent:absent.length,missing:missing.length,partial:partial.length,delta,statistics,passRows,sectionPassRows};',
+        ),
+        (
+            'passCount:passRows.length,excellentCount:excellentRows.length,absent:absent.length,missing:missing.length,partial:partial.length,targetTotal:',
+            'passCount:passRows.length,excellentCount:jlptRule?sectionPassRows.length:excellentRows.length,assessmentRule:jlptRule,sectionPassCount:sectionPassRows.length,absent:absent.length,missing:missing.length,partial:partial.length,targetTotal:',
+        ),
+        (
+            'title:`${boundary.length} 名学生接近及格线`,metric:String(boundary.length),unit:"人",metricLabel:"位于及格线附近"',
+            'title:jlptRule?`${boundary.length} 名学生接近总合格分`:`${boundary.length} 名学生接近及格线`,metric:String(boundary.length),unit:"人",metricLabel:jlptRule?"位于 JLPT 总合格分附近":"位于及格线附近"',
+        ),
+    ]
+    for old, new in overview_replacements:
+        if features.count(old) != 1:
+            raise RuntimeError('Production JLPT overview anchor changed: ' + old[:90])
+        features = features.replace(old, new, 1)
+    features += '\n' + (ROOT / 'src/jlpt-score-overview.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
     idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'

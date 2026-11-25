@@ -1,0 +1,259 @@
+/* Official JLPT scaled-score entry templates. Legacy exams keep their existing rules. */
+(() => {
+    'use strict';
+
+    const levelRules = {
+        N1: { passTotal: 100, sections: [
+            ['语言知识（文字・词汇・语法）', 60, 19], ['读解', 60, 19], ['听解', 60, 19]
+        ] },
+        N2: { passTotal: 90, sections: [
+            ['语言知识（文字・词汇・语法）', 60, 19], ['读解', 60, 19], ['听解', 60, 19]
+        ] },
+        N3: { passTotal: 95, sections: [
+            ['语言知识（文字・词汇・语法）', 60, 19], ['读解', 60, 19], ['听解', 60, 19]
+        ] },
+        N4: { passTotal: 90, sections: [
+            ['语言知识・读解', 120, 38], ['听解', 60, 19]
+        ] },
+        N5: { passTotal: 80, sections: [
+            ['语言知识・读解', 120, 38], ['听解', 60, 19]
+        ] }
+    };
+    const templates = Object.fromEntries(Object.entries(levelRules).map(([level, config]) => {
+        const types = config.sections.map(([name, max]) => ({ name, max, manualScore: true }));
+        const sectionPassMarks = Object.fromEntries(config.sections.map(([name, , min]) => [name, min]));
+        return [`jlpt:${level}`, {
+            id: `jlpt:${level}`,
+            name: `JLPT ${level} 官方成绩`,
+            level,
+            types,
+            assessmentRule: { kind: 'jlpt-official', level, passTotal: config.passTotal, sectionPassMarks }
+        }];
+    }));
+
+    const templateFor = id => templates[id] || null;
+    const ruleForExam = exam => exam?.assessmentRule?.kind === 'jlpt-official' ? exam.assessmentRule : null;
+    const sameRule = (left, right) => {
+        if (!left || !right) return !left && !right;
+        if (left.kind !== right.kind || left.level !== right.level || left.passTotal !== right.passTotal) return false;
+        const a = left.sectionPassMarks || {}, b = right.sectionPassMarks || {};
+        return Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(key => a[key] === b[key]);
+    };
+    const sameTypes = (actual, expected) => Array.isArray(actual) && actual.length === expected.length && expected.every((type, index) =>
+        actual[index]?.name === type.name && Number(actual[index]?.max) === type.max && !actual[index]?.questionCount
+    );
+
+    function evaluate(record, exam) {
+        const rule = ruleForExam(exam);
+        if (!rule) return null;
+        if (!record) return { status: '未录入', complete: false, sectionPass: false, passed: false, failures: [] };
+        if (record.examAbsent) return { status: '缺考', complete: false, sectionPass: false, passed: false, failures: [] };
+        const sections = Object.entries(rule.sectionPassMarks || {});
+        const scores = sections.map(([name, minimum]) => {
+            const raw = record.details?.[name];
+            const value = raw === undefined || raw === null || String(raw).trim() === '' ? null : Number(raw);
+            return { name, minimum, value };
+        });
+        const complete = scores.every(section => Number.isFinite(section.value));
+        if (!complete) return { status: '待补录', complete: false, sectionPass: false, passed: false, failures: [] };
+        const failures = scores.filter(section => section.value < section.minimum).map(section => section.name);
+        const total = scores.reduce((sum, section) => sum + section.value, 0);
+        const sectionPass = failures.length === 0;
+        const passed = sectionPass && total >= rule.passTotal;
+        return { status: passed ? '合格' : '未合格', complete, sectionPass, passed, failures, total, totalPass: total >= rule.passTotal };
+    }
+
+    const api = Object.freeze({ templates, templateFor, ruleForExam, sameRule, sameTypes, evaluate });
+    window.gk2JLPT = api;
+
+    // Keep the shared statistics API intact for all legacy exams while applying
+    // the official two-part pass rule to JLPT summaries.
+    const baseStatistics = window.gk2Statistics;
+    if (baseStatistics?.summarize) {
+        window.gk2Statistics = Object.freeze({
+            ...baseStatistics,
+            summarize(rows, exam) {
+                const summary = baseStatistics.summarize(rows, exam);
+                const rule = ruleForExam(exam);
+                if (!rule) return summary;
+                const validRows = rows.filter(row => row.record && baseStatistics.inspect(row.record, exam).included);
+                const results = validRows.map(row => evaluate(row.record, exam));
+                const passCount = results.filter(result => result.passed).length;
+                const sectionPassCount = results.filter(result => result.sectionPass).length;
+                return {
+                    ...summary,
+                    passCount,
+                    passRate: validRows.length ? passCount / validRows.length * 100 : null,
+                    excellentCount: null,
+                    excellentRate: null,
+                    sectionPassCount,
+                    sectionPassRate: validRows.length ? sectionPassCount / validRows.length * 100 : null
+                };
+            }
+        });
+    }
+
+    const UILayer = UI;
+    if (!UILayer?.prototype) return;
+
+    const originalRefresh = UILayer.prototype.refreshExamTemplateSelect;
+    UILayer.prototype.refreshExamTemplateSelect = function(selectedId = '') {
+        originalRefresh.call(this, selectedId);
+        const select = document.getElementById('m-template-select');
+        if (!select) return;
+        const group = document.createElement('optgroup');
+        group.label = 'JLPT 官方成绩模板';
+        Object.values(templates).forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.name;
+            group.appendChild(option);
+        });
+        select.appendChild(group);
+        if (selectedId) select.value = selectedId;
+    };
+
+    function setTemplateMode(id) {
+        const locked = !!templateFor(id);
+        const list = document.getElementById('q-list');
+        if (!list) return;
+        list.dataset.gk2JlptTemplate = locked ? id : '';
+        list.querySelectorAll('.q-row').forEach(row => {
+            row.draggable = !locked;
+            row.querySelectorAll('input,button').forEach(control => { control.disabled = locked; });
+        });
+        const addButton = list.parentElement?.querySelector('button[onclick*="addQ"]');
+        if (addButton) addButton.disabled = locked;
+        let note = document.getElementById('gk2-jlpt-entry-note');
+        if (locked && !note) {
+            note = document.createElement('div');
+            note.id = 'gk2-jlpt-entry-note';
+            note.className = 'field-hint mb-sm';
+            list.after(note);
+        }
+        if (note) {
+            const template = templateFor(id);
+            note.hidden = !template;
+            if (template) {
+                const rule = template.assessmentRule;
+                const sectionText = Object.entries(rule.sectionPassMarks).map(([name, min]) => `${name} ≥ ${min}`).join('；');
+                note.textContent = `录入 JLPT ${rule.level} 成绩单上的尺度分（非答对题数换算分）。官方合格线：总分 ${rule.passTotal}/180；分项基准：${sectionText}。`;
+            }
+        }
+    }
+
+    const originalLoad = UILayer.prototype.loadExamTemplate;
+    UILayer.prototype.loadExamTemplate = function(templateId = '', options = {}) {
+        const select = document.getElementById('m-template-select');
+        const id = templateId || select?.value || '';
+        const template = templateFor(id);
+        if (!template) {
+            const result = originalLoad.call(this, templateId, options);
+            setTemplateMode('');
+            return result;
+        }
+        if (select) select.value = id;
+        const list = document.getElementById('q-list');
+        if (!list) return Utils.msg('题型列表未找到', 'error');
+        list.innerHTML = '';
+        template.types.forEach(type => {
+            const row = document.createElement('div');
+            row.className = 'q-row';
+            row.innerHTML = this._renderQuestionRow({ name: type.name, max: type.max, manualScore: true, old: null });
+            list.appendChild(row);
+        });
+        this._syncQuestionRows('q-list');
+        setTemplateMode(id);
+        const name = document.getElementById('m-ename');
+        if (name && !name.value.trim()) {
+            const date = document.getElementById('m-edate')?.value || '日期待补';
+            name.value = `JLPT ${template.level} 官方成绩（${date}）`;
+        }
+        if (!options.silent) Utils.msg(`JLPT ${template.level} 官方成绩模板已加载`);
+    };
+
+    const originalOpen = UILayer.prototype.openExamModal;
+    UILayer.prototype.openExamModal = function(...args) {
+        const result = originalOpen.apply(this, args);
+        setTemplateMode(document.getElementById('m-template-select')?.value || '');
+        return result;
+    };
+
+    const originalCreate = UILayer.prototype.doCreateExam;
+    UILayer.prototype.doCreateExam = function(...args) {
+        const id = document.getElementById('m-template-select')?.value || '';
+        const template = templateFor(id);
+        const name = document.getElementById('m-ename')?.value.trim() || '';
+        const grade = document.getElementById('m-grade')?.value || '';
+        const existing = this.store.state.data.exams.find(exam => exam.name === name && exam.grade === grade);
+        const loadedTemplate = document.getElementById('q-list')?.dataset.gk2JlptTemplate || '';
+        if (loadedTemplate && loadedTemplate !== id) return Utils.msg('已更改模板选择，请先点击“加载”应用所选模板', 'error');
+        if (template) {
+            const types = this.collectCurrentQuestionTypes();
+            if (!sameTypes(types, template.types)) return Utils.msg('请先加载完整的 JLPT 官方成绩模板，官方成绩项和满分不能修改', 'error');
+            if (existing && (!sameRule(existing.assessmentRule, template.assessmentRule) || !sameTypes(existing.types, template.types))) {
+                return Utils.msg('同名考试已有不同考试规则，请为这场 JLPT 考试使用独立名称', 'error');
+            }
+        } else if (existing && ruleForExam(existing)) {
+            return Utils.msg('不能将普通考试合并到 JLPT 官方成绩考试，请使用独立名称', 'error');
+        }
+
+        return originalCreate.apply(this, args);
+    };
+
+    const originalEdit = UILayer.prototype.doEditExam;
+    UILayer.prototype.doEditExam = function(...args) {
+        const id = document.getElementById('me-eid')?.value || '';
+        const current = this.store.state.data.exams.find(exam => exam.id === id);
+        const rule = ruleForExam(current);
+        const name = document.getElementById('me-ename')?.value.trim() || '';
+        const grade = document.getElementById('me-grade')?.value || '';
+        const target = this.store.state.data.exams.find(exam => exam.id !== id && exam.name === name && exam.grade === grade);
+        if (rule) {
+            const template = templateFor(`jlpt:${rule.level}`);
+            const types = this._collectQuestionTypesFromList('edit-q-list');
+            if (!template || !sameTypes(types, template.types)) return Utils.msg('JLPT 官方成绩项和满分固定，不能在考试编辑中修改', 'error');
+            if (target && (!sameRule(target.assessmentRule, rule) || !sameTypes(target.types, template.types))) {
+                return Utils.msg('不能将 JLPT 官方成绩考试合并到不同等级或普通考试', 'error');
+            }
+        } else if (target && ruleForExam(target)) {
+            return Utils.msg('不能将普通考试合并到 JLPT 官方成绩考试，请使用独立名称', 'error');
+        }
+        return originalEdit.apply(this, args);
+    };
+
+    const originalRenderTemplateManager = UILayer.prototype.renderExamTemplateManager;
+    UILayer.prototype.renderExamTemplateManager = function(...args) {
+        const result = originalRenderTemplateManager.apply(this, args);
+        const body = document.getElementById('exam-template-manager-body');
+        if (!body) return result;
+        const hint = document.querySelector('#exam-template-manager-dialog > .dialog-note');
+        if (hint) hint.textContent = '自定义模板可设为新建默认项并继续编辑；JLPT 官方模板可加载使用，成绩项、分值和合格线固定。';
+        if (this._creatingExamTemplate || this._editingExamTemplateId) return result;
+
+        let table = body.querySelector('.gk2-template-manager-table');
+        if (!table) {
+            body.innerHTML = `
+                <div class="table-scroll-container" style="max-height:420px;">
+                    <table class="table-shell gk2-template-manager-table">
+                        <thead><tr><th>模板名称</th><th>题型构成</th><th class="gk2-template-default-heading">新建默认</th><th class="gk2-template-actions-heading">操作</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>`;
+            table = body.querySelector('.gk2-template-manager-table');
+        }
+        const tbody = table.querySelector('tbody');
+        if (!tbody || tbody.querySelector('.gk2-jlpt-template-divider')) return result;
+        tbody.insertAdjacentHTML('beforeend', `<tr class="gk2-jlpt-template-divider"><th colspan="4" style="text-align:left;">JLPT 官方成绩模板</th></tr>${Object.values(templates).map(template => {
+            const composition = template.types.map(type => `${Utils.escapeHTML(type.name)}（${type.max}分，基准${template.assessmentRule.sectionPassMarks[type.name]}分）`).join('、');
+            const total = template.assessmentRule.passTotal;
+            return `<tr class="gk2-jlpt-template-row">
+                <td style="font-weight:700;">${Utils.escapeHTML(template.name)}<small class="dialog-note" style="display:block;">系统内置 · 尺度分</small></td>
+                <td class="dialog-note">${composition}<br><strong>总分合格线 ${total}/180</strong></td>
+                <td class="gk2-template-default-cell"><span class="dialog-note">官方固定</span></td>
+                <td class="gk2-template-actions-cell"><div class="gk2-template-actions"><button class="gk2-template-action gk2-template-action--load" type="button" data-action="load" data-id="${template.id}">加载</button></div></td>
+            </tr>`;
+        }).join('')}`);
+        return result;
+    };
+})();
