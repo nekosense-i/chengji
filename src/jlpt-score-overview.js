@@ -7,7 +7,8 @@
 
     const genericRender = K.render;
     K.render = function(summary) {
-        if (summary.assessmentRule?.kind !== 'jlpt-official') return genericRender.call(this, summary);
+        if (!summary.assessmentRule) return genericRender.call(this, summary);
+        const simulated = summary.assessmentRule.kind !== 'jlpt-official';
         const wrapper = document.createElement('div');
         wrapper.innerHTML = genericRender.call(this, summary);
         const cards = wrapper.querySelectorAll('.gk2-kpi-card');
@@ -16,11 +17,11 @@
             const status = (card, text) => { const node = card.querySelector('.gk2-kpi-status'); if (node) node.textContent = text; };
             const sub = (card, text) => { const node = card.querySelector('.gk2-kpi-sub'); if (node) node.textContent = text; };
             const foot = (card, text) => { const node = card.querySelector('.gk2-kpi-foot'); if (node) node.textContent = text; };
-            title(cards[1], '平均尺度分');
+            title(cards[1], simulated ? '平均模拟参考分' : '平均尺度分');
             status(cards[1], `JLPT ${summary.assessmentRule.level}`);
-            sub(cards[1], '官方尺度分平均值；不表示答对率');
-            title(cards[2], '官方合格率');
-            status(cards[2], summary.valid ? `${summary.passCount} 人合格` : '暂无成绩');
+            sub(cards[1], simulated ? '按模拟规则计算的教学参考分' : '官方尺度分平均值；不表示答对率');
+            title(cards[2], simulated ? '模拟参考达线率' : '官方合格率');
+            status(cards[2], summary.valid ? `${summary.passCount} 人${simulated ? '达线' : '合格'}` : '暂无成绩');
             sub(cards[2], `${summary.passCount}/${summary.valid} 人 · 总分 ≥ ${summary.assessmentRule.passTotal}，且各项达到基准`);
             foot(cards[2], summary.valid ? `未合格 ${summary.valid - summary.passCount} 人` : '等待成绩录入');
             title(cards[3], '分项达标率');
@@ -52,13 +53,13 @@
                 }
             };
         };
-        bind(cards[2], 'JLPT 官方合格学生', snapshot.passRows || [], `官方规则：总分至少 ${rule.passTotal}/180，且所有成绩项达到各自基准分。`);
+        bind(cards[2], rule.kind === 'jlpt-official' ? 'JLPT 官方合格学生' : 'JLPT 模拟参考达线学生', snapshot.passRows || [], `官方规则：总分至少 ${rule.passTotal}/180，且所有成绩项达到各自基准分。`);
         bind(cards[3], 'JLPT 分项达标学生', snapshot.sectionPassRows || [], '所有成绩项达到各自的分项基准分；此项统计不代表总分已达到合格线。');
 
         const heatHeading = document.querySelector('#ov-card-heatmap .gk2-chart-heading b');
         const heatFoot = document.querySelector('#ov-card-heatmap .gk2-chart-foot');
-        if (heatHeading) heatHeading.textContent = '各成绩项尺度分';
-        if (heatFoot) heatFoot.textContent = '各项平均尺度分占该项满分比例';
+        if (heatHeading) heatHeading.textContent = rule.kind === 'jlpt-official' ? '各成绩项尺度分' : '各板块得分率';
+        if (heatFoot) heatFoot.textContent = '各项平均分占该项满分比例';
         const bands = document.querySelectorAll('#ov-card-dist .gk2-dist-legend-item');
         ['<40% 满分占比', '40–60% 满分占比', '60–80% 满分占比', '≥80% 满分占比'].forEach((label, index) => {
             if (bands[index]?.querySelector('.full')) bands[index].querySelector('.full').textContent = label;

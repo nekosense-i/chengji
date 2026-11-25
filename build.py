@@ -73,7 +73,11 @@ def build(destination):
         + '\n'
         + (ROOT / 'src/exam-entry-modes.js').read_text()
         + '\n'
+        + (ROOT / 'src/jlpt-mock-rules.js').read_text()
+        + '\n'
         + (ROOT / 'src/jlpt-score-entry.js').read_text()
+        + '\n'
+        + (ROOT / 'src/exam-class-scope.js').read_text()
         + '\n'
         + anchor,
     )
@@ -92,13 +96,41 @@ def build(destination):
         if old not in core:
             raise RuntimeError('Production entry anchor changed: ' + old[:80])
         core = core.replace(old, new)
+    core = core.replace('let existingExam = this.store.state.data.exams.find(e => e.name === n && e.grade === g);',
+        "const classScope = this._readExamClassScope('m');\n                    if (!classScope.length) return Utils.msg('请至少勾选一个参与日语班', 'error');\n                    let existingExam = null;")
+    core = core.replace('e.id !== eid && e.name === n && e.grade === g', 'e.id !== eid && e.name === n && e.grade === g && !e.classScope && !currentExam.classScope && !classScope')
+    core = core.replace('const targetExam = this.store.state.data.exams.find', '''const chosenClasses = this._readExamClassScope('me');
+                    const classScope = this._getAuth()?.mode === 'teacher' ? currentExam.classScope : chosenClasses.length ? chosenClasses : currentExam.classScope;
+                    const targetExam = this.store.state.data.exams.find''')
+    core = core.replace('currentExam.grade = g;', 'currentExam.grade = g;\n                        if (classScope) currentExam.classScope = classScope;')
+    core = core.replace('let exam = this.store.state.data.exams.find(e => e.name === n && e.grade === g);',
+        'let exam = this.store.state.data.exams.find(e => e.name === n && e.grade === g && !e.classScope && !e.assessmentRule && this._getAuth()?.mode !== \'teacher\');')
+    core = core.replace('types: types, grade: g, campuses: [c] };', """types: types, grade: g, campuses: [c] };
+                                const importer = this._getAuth();
+                                if (importer?.mode === 'teacher') exam.classScope = [JSON.stringify([importer.campus, importer.classId])];""")
+    core = core.replace('!Utils.isStudentInExam(s, {id:newExamId})', '!Utils.canReadStudent(s, exam)')
+    core = core.replace("const focusKey = kind === 'campus' ?", """for (const exam of this.store.state.data.exams) {
+                            if (!exam.classScope) continue;
+                            const nextScope = exam.classScope.map(encoded => {
+                                const [site, name] = JSON.parse(encoded);
+                                if (kind === 'campus' && site === oldValue) return JSON.stringify([nextValue, name]);
+                                if (kind === 'teachingClass' && site === campus && exam.grade === grade && name === oldValue) return JSON.stringify([site, nextValue]);
+                                return encoded;
+                            });
+                            if (nextScope.some((value, i) => value !== exam.classScope[i])) {
+                                exam.classScope = [...new Set(nextScope)];
+                                exam._ts = now;
+                            }
+                        }
+                        const focusKey = kind === 'campus' ?""")
+    core = re.sub(r'this\.store\.state\.data\.exams\.filter\((e|ex) => \{', lambda m: m[0] + '\n                        if (!this._examVisible(' + m[1] + ')) return false;', core)
     exam_create_anchor = '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, entryMode });'
     if core.count(exam_create_anchor) != 1:
         raise RuntimeError('Production exam creation anchor changed')
     core = core.replace(
         exam_create_anchor,
         '                        const assessmentRule = window.gk2JLPT.templateFor(document.getElementById("m-template-select")?.value)?.assessmentRule;\n'
-        '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, entryMode, ...(assessmentRule ? { assessmentRule: JSON.parse(JSON.stringify(assessmentRule)) } : {}) });',
+        '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, classScope, entryMode, ...(assessmentRule ? { assessmentRule: JSON.parse(JSON.stringify(assessmentRule)) } : {}) });',
         1,
     )
     # Count validation applies to both correct and incorrect question counts.
@@ -136,6 +168,9 @@ def build(destination):
         if features.count(old) != 1:
             raise RuntimeError('Production count display anchor changed: ' + old[:80])
         features = features.replace(old, new, 1)
+    features = features.replace("auth.mode==='admin'||auth.mode==='teacher'&&e.grade===auth.grade", "ui._examVisible(e)")
+    features = features.replace("entryMode:e.entryMode})).sort", "entryMode:e.entryMode,classScope:e.classScope,assessmentRule:e.assessmentRule})).sort")
+    features = features.replace("const position=atExam(student),campus=position.campus||student.campus;", "if (exam.classScope && !window.gk2Policy.examParticipant(student,exam)) return false;\n   const position=atExam(student),campus=position.campus||student.campus;")
     features = add_disclosure_features(features)
     overview_replacements = [
         (
@@ -148,7 +183,7 @@ def build(destination):
         ),
         (
             'const history=ui.store.state.data.exams.filter(e=>e.grade===exam.grade&&e.date<=exam.date&&eligible(e).length&&e.maxTotal>0).sort((a,b)=>a.date.localeCompare(b.date));',
-            "const history=ui.store.state.data.exams.filter(e=>e.grade===exam.grade&&e.date<=exam.date&&eligible(e).length&&e.maxTotal>0&&(!jlptRule||(e.assessmentRule?.kind==='jlpt-official'&&e.assessmentRule.level===jlptRule.level))).sort((a,b)=>a.date.localeCompare(b.date));",
+            "const history=ui.store.state.data.exams.filter(e=>e.grade===exam.grade&&e.date<=exam.date&&eligible(e).length&&e.maxTotal>0&&(jlptRule?(e.assessmentRule?.kind===jlptRule.kind&&e.assessmentRule.level===jlptRule.level):!window.gk2JLPT.ruleForExam(e))).sort((a,b)=>a.date.localeCompare(b.date));",
         ),
         (
             'G.snapshot={exam,all,valid,max,avg,passRate,excRate,zero:zero.length,absent:absent.length,missing:missing.length,partial:partial.length,delta,statistics};',
