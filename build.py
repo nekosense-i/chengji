@@ -79,6 +79,8 @@ def build(destination):
         + '\n'
         + (ROOT / 'src/exam-class-scope.js').read_text()
         + '\n'
+        + (ROOT / 'src/exam-dialog.js').read_text()
+        + '\n'
         + anchor,
     )
     entry_replacements = [
@@ -124,6 +126,18 @@ def build(destination):
                         }
                         const focusKey = kind === 'campus' ?""")
     core = re.sub(r'this\.store\.state\.data\.exams\.filter\((e|ex) => \{', lambda m: m[0] + '\n                        if (!this._examVisible(' + m[1] + ')) return false;', core)
+    core = core.replace("if (nextValue === oldValue) return close();", """if (nextValue === oldValue) {
+                            if (this._saveClassTemplate(dialog, affected, campus, grade, oldValue)) {
+                                this.store.save();
+                                this.refresh();
+                            }
+                            return close();
+                        }""", 1)
+    core = core.replace("const focusKey = kind === 'campus' ?", """this._saveClassTemplate(dialog, affected, campus, grade, nextValue);
+                        const focusKey = kind === 'campus' ?""", 1)
+    create_start = core.index("                openExamModal() {")
+    core = core[:create_start] + re.sub(r"const defaultTemplate = this.getDefaultExamTemplate\(\);\s+if \(defaultTemplate\) \{.*?\} else \{(.*?)\n[ \t]*\}(?=\s+document.getElementById\('modal-exam'\).showModal)", r"\1", core[create_start:], count=1, flags=re.S)
+    core = core.replace("const anchor = badge && badge.getClientRects().length ? badge : title;", "const anchor = summary.querySelector('[data-class-template-badge]') || (badge && badge.getClientRects().length ? badge : title);")
     exam_create_anchor = '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, entryMode });'
     if core.count(exam_create_anchor) != 1:
         raise RuntimeError('Production exam creation anchor changed')
@@ -136,6 +150,8 @@ def build(destination):
     # Count validation applies to both correct and incorrect question counts.
     start, end = core.index('                renderExamTables(eid) {'), core.index('                saveVal(sid, eid, tn, val, tid, max = 0, inputEl) {')
     core = core[:start] + core[start:end].replace('正确题数', '题数') + core[end:]
+    core = core.replace("Number(row.querySelector('.qs')?.value)", "this._readExamQuestionMax(row.querySelector('.qs'))")
+    core = core.replace("row.querySelector('.q-count')?.value || ''", "row.querySelector('.q-count')?.dataset.manualCount || row.querySelector('.q-count')?.value || ''")
     core = add_disclosure_core(core)
     total_anchor = '  out._ts=Math.max(time(a._ts),time(b._ts),...Object.values(out._fieldTs));'
     if core.count(total_anchor) != 1:
@@ -211,6 +227,8 @@ def build(destination):
     styles = styles.replace(idle_scope_shadow, 'box-shadow:none;', 1)
     styles += '\n' + (ROOT / 'src/exam-entry-modes.css').read_text()
     styles += '\n' + (ROOT / 'src/disclosure-motion.css').read_text()
+    styles = re.sub(r'#modal-settings (?=\.gk2-settings-(?:header|close)|\.dialog-title)', ':is(#modal-settings, #modal-exam, #modal-edit-exam) ', styles)
+    styles += '\n' + (ROOT / 'src/exam-dialog.css').read_text()
     for old, content in [(core_path, core), (features_path, features), (styles_path, styles)]:
         label = old.split('/')[-1].split('.')[0]
         new = f'assets/app/{label}.{hashlib.sha256(content.encode()).hexdigest()[:16]}{Path(old).suffix}'

@@ -36,11 +36,12 @@ from pathlib import Path
 import sys,re,hashlib
 stage,live=map(Path,sys.argv[1:])
 base=(stage/'src/release/Gakuten-2.0.base.html').read_bytes()
-assert hashlib.sha256(base).hexdigest()=='9eb575bbc2754f5145b1bfab8426daea1ea64548aa6809bea6fcb6ffcbe1b0b8', 'Unknown release baseline'
+assert hashlib.sha256(base).hexdigest()=='376a0f6297c173bbceb9584fddaa177a7d41c86b5edaaecf56fd844b5ace4179', 'Unknown release baseline'
 live_html=(live/'Gakuten-2.0.html').read_bytes()
-assert hashlib.sha256(live_html).hexdigest()=='0f0c65bc32deb4beaf06d469ed42c18fa02c58a477c86191c292ade4a6143408', 'Production HTML changed; stop and inspect before deploying'
+assert hashlib.sha256(live_html).hexdigest()=='e6493c045278f3c6a518887c4033fb3a9295df961e8accf0e90a492362801dd0', 'Production HTML changed; stop and inspect before deploying'
 html=(stage/'Gakuten-2.0.html').read_text()
 old=live_html.decode()
+expected=base.decode()
 changed=[]
 for kind in ['styles','core','features']:
  extension='css' if kind=='styles' else 'js'
@@ -48,9 +49,9 @@ for kind in ['styles','core','features']:
  prior=re.search(pattern,old)[0]; current=re.search(pattern,html)[0]
  assert (live/prior).read_bytes()==(stage/prior).read_bytes(), 'Production '+kind+' changed'
  assert hashlib.sha256((stage/current).read_bytes()).hexdigest()[:16] in current, 'Invalid generated asset hash'
- old=old.replace(prior,current)
+ expected=re.sub(pattern,lambda _: current,expected,count=1)
  changed.append(current)
-assert old==html, 'Unexpected HTML modification'
+assert expected==html, 'Unexpected HTML modification'
 for asset in re.findall(r'(?:src|href)="(assets/[^"?#]+)',html):
  assert (stage/asset).is_file(), 'Missing release asset: '+asset
  if asset not in changed:

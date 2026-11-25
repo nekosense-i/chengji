@@ -491,43 +491,47 @@ window.gk2IconMarkup = function(name) {
         </section>
     </main>
 
-    <dialog id="modal-exam" aria-modal="true" aria-label="新建考试" class="dialog-shell dialog--lg" data-backdrop-close="false">
-        <div class="dialog-title mb-md"><svg class="gk2-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m4 16.5-.8 4.3 4.3-.8L19.7 7.8a2.8 2.8 0 0 0-4-4Z M13.8 5.8l4.4 4.4"/></svg> 新建考试</div>
-        <div class="dialog-panel">
-            <div class="dialog-field-group">
-                <div class="field-label mb-sm">选择参与的校区 (可多选，选定后录入区将自动为您展示该校区的班级):</div>
-                <div id="m-campuses-container" class="flex-row flex-wrap gap-md p-card surface-white" style="padding: 10px;"></div>
+    <dialog id="modal-exam" aria-modal="true" aria-label="新建考试" class="dialog-shell dialog--lg exam-setup" data-backdrop-close="false">
+        <header class="gk2-settings-header">
+            <h2 class="dialog-title">新建考试</h2>
+            <button type="button" class="gk2-settings-close" aria-label="关闭新建考试" onclick="this.closest('dialog').close()">×</button>
+        </header>
+        <div class="exam-basics">
+            <div class="exam-scope">
+                <div class="exam-field-label" id="m-campuses-label" title="可多选，录入区将显示所选校区的班级">参与校区</div>
+                <div id="m-campuses-container" class="exam-capsules" role="group" aria-labelledby="m-campuses-label"></div>
             </div>
-            <div class="flex-row gap-md mb-sm">
-                <select id="m-grade" class="flex-1" title="所属年级"></select>
-                <input type="text" id="m-ename" class="flex-2" placeholder="考试名称 (同名自动合并)">
-            </div>
-            <div class="flex-row gap-md">
-                <input type="date" id="m-edate" class="flex-1" title="考试日期 (用于自动计算学期)">
-            </div>
-            <div class="field-hint mt-sm">* 提示：同一年级若名称一致，将自动并入同一场联考。</div>
-        </div>
-        <p class="field-label mb-sm">设置考试题型与满分：</p>
-        <div class="field-hint mb-sm">客观题可设置题数，按等分值自动换算得分；作文等主观题勾选“老师手动录分”。</div>
-        <div id="q-list" class="dialog-input-list">
-            <div class="q-row flex-row gap-md mb-sm">
-                <input type="text" placeholder="题型名称 (如: 听力)" class="qn flex-2" value="听力">
-                <input type="number" placeholder="满分" class="qs flex-1" value="30">
-                <button class="secondary btn--icon-only" onclick="window.app.ui.moveQ(this, -1)" title="向上移动此题型">↑</button>
-                <button class="secondary btn--icon-only" onclick="window.app.ui.moveQ(this, 1)" title="向下移动此题型">↓</button>
-                <button class="danger btn--icon-only" style="visibility:hidden;">×</button>
+            <div class="exam-fields">
+                <label><span class="exam-field-label">年级</span><select id="m-grade"></select></label>
+                <label><span class="exam-field-label">考试名称</span><input type="text" id="m-ename" placeholder="同年级同名自动合并"></label>
+                <label><span class="exam-field-label">考试日期</span><input type="date" id="m-edate" title="用于自动计算学期"></label>
             </div>
         </div>
-        <button class="secondary btn--full-width" style="border-style: dashed;" onclick="window.app.ui.addQ()">+ 增加一个题型</button>
-        <div class="flex-row items-center gap-sm mb-md mt-md p-card" style="border-style:dashed;">
-            <select id="m-template-select" class="flex-1" style="font-size:12px;">
+        <div class="exam-question-title">
+            <h3>题型与分值</h3>
+            <output id="q-list-total"></output>
+        </div>
+        <div class="exam-template-tools">
+            <select id="m-template-select" aria-label="题型模板">
                 <option value="">— 从模板加载题型 —</option>
             </select>
             <button class="secondary btn--compact" onclick="window.app.ui.loadExamTemplate()">加载</button>
             <button class="secondary btn--compact" onclick="window.app.ui.saveExamTemplate()">另存为模板</button>
             <button class="secondary btn--compact" onclick="window.app.ui.openExamTemplateManager()">管理</button>
         </div>
-        <div class="dialog-footer" style="margin-top:25px;">
+        <div class="exam-question-table">
+            <div class="exam-question-heading">
+                <div class="exam-question-columns">
+                    <span>排序</span><span>题型名称</span><span>满分</span><span>题数</span><span>录分方式</span><span>操作</span>
+                </div>
+            </div>
+            <div id="q-list" class="dialog-input-list"></div>
+            <div class="exam-question-footer">
+                <button type="button" class="secondary btn--compact" onclick="window.app.ui.addQ()">+ 增加一个题型</button>
+                <span class="field-hint">客观题按题数等分换算，主观题勾选手动录分</span>
+            </div>
+        </div>
+        <div class="dialog-footer">
             <button class="secondary" onclick="document.getElementById('modal-exam').close()">取消</button>
             <button class="primary" style="background-color: var(--primary); color: white;" onclick="window.app.ui.doCreateExam()">确定创建</button>
         </div>
@@ -562,36 +566,46 @@ window.gk2IconMarkup = function(name) {
         </div>
     </dialog>
 
-    <dialog id="modal-edit-exam" aria-modal="true" aria-label="编辑考试" class="dialog-shell dialog--lg">
-        <div class="dialog-title mb-sm"><svg class="gk2-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m4 16.5-.8 4.3 4.3-.8L19.7 7.8a2.8 2.8 0 0 0-4-4Z M13.8 5.8l4.4 4.4"/></svg> 编辑考试与题型架构</div>
-        <div class="dialog-panel dialog-panel--tight">
+    <dialog id="modal-edit-exam" aria-modal="true" aria-label="编辑考试" class="dialog-shell dialog--lg exam-setup">
+        <header class="gk2-settings-header">
+            <h2 class="dialog-title">编辑考试</h2>
+            <button type="button" class="gk2-settings-close" aria-label="关闭编辑考试" onclick="this.closest('dialog').close()">×</button>
+        </header>
+        <div class="exam-basics">
             <input type="hidden" id="me-eid">
-            <div class="dialog-field-group">
-                <div class="field-label mb-sm">参与校区 (若要新增展示班级，请勾选对应校区):</div>
-                <div id="me-campuses-container" class="flex-row flex-wrap gap-md p-card surface-white" style="padding: 10px;"></div>
+            <div class="exam-scope">
+                <div class="exam-field-label" id="me-campuses-label" title="可多选，录入区将显示所选校区的班级">参与校区</div>
+                <div id="me-campuses-container" class="exam-capsules" role="group" aria-labelledby="me-campuses-label"></div>
             </div>
-            <div class="flex-row gap-md mb-sm">
-                <select id="me-grade" class="flex-1" title="所属年级"></select>
-                <input type="text" id="me-ename" class="flex-2" placeholder="考试名称 (修改为同名会自动合并)">
-            </div>
-            <div class="flex-row gap-md">
-                <input type="date" id="me-edate" class="flex-1" title="考试日期 (用于自动计算学期)">
+            <div class="exam-fields">
+                <label><span class="exam-field-label">年级</span><select id="me-grade"></select></label>
+                <label><span class="exam-field-label">考试名称</span><input type="text" id="me-ename" placeholder="同年级同名自动合并"></label>
+                <label><span class="exam-field-label">考试日期</span><input type="date" id="me-edate" title="用于自动计算学期"></label>
             </div>
         </div>
-        
-        <p class="field-label mb-sm">调整底层题型切片：</p>
-        <div class="field-hint mb-sm">设置题数后可切换为按正确题数录入；勾选“老师手动录分”的题型始终按分数输入。</div>
-        <div id="edit-q-list" class="dialog-input-list">
+        <div class="exam-question-title">
+            <h3>题型与分值</h3>
+            <output id="edit-q-list-total"></output>
         </div>
-        <button class="secondary btn--full-width mb-md" style="border-style: dashed;" onclick="window.app.ui.addEditQ()">+ 新增题型列</button>
-        
+        <div class="exam-question-table">
+            <div class="exam-question-heading">
+                <div class="exam-question-columns">
+                    <span>排序</span><span>题型名称</span><span>满分</span><span>题数</span><span>录分方式</span><span>操作</span>
+                </div>
+            </div>
+            <div id="edit-q-list" class="dialog-input-list"></div>
+            <div class="exam-question-footer">
+                <button type="button" class="secondary btn--compact" onclick="window.app.ui.addEditQ()">+ 增加一个题型</button>
+                <span class="field-hint">客观题按题数等分换算，主观题勾选手动录分</span>
+            </div>
+        </div>
         <div class="dialog-danger-note">
             <svg class="gk2-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.3 3.9 2.5 18.2A2 2 0 0 0 4.2 21h15.6a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z M12 9v4 M12 17h.01"/></svg> <b>高阶防呆提示：</b><br>
-            1. 点击上下箭头可自由拖拽排序，不影响已填成绩。<br>
+            1. 拖动排序手柄可调整题型顺序，不影响已填成绩。<br>
             2. 如果您在此处直接点击“x”<b>删除了某个题型</b>，该题型下的所有学生分数将被彻底擦除！
         </div>
 
-        <div class="dialog-footer" style="margin-top:0;">
+        <div class="dialog-footer">
             <button class="secondary" onclick="document.getElementById('modal-edit-exam').close()">取消</button>
             <button class="primary" style="background-color: var(--primary); color: white;" onclick="window.app.ui.doEditExam()">保存并重排列表</button>
         </div>

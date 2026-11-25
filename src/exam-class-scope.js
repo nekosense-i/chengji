@@ -21,6 +21,72 @@
     UI.prototype._readExamClassScope = function(prefix) {
         return [...document.querySelectorAll(`#${prefix}-class-scope input:checked`)].map(input => input.value);
     };
+    const classKey = (campus, grade, name) => JSON.stringify([campus, grade, name]);
+    const templatesFor = ui => [
+        ...ui.store.state.data.examTemplates.filter(t => !t._deleted),
+        ...Object.values(window.gk2JLPT.templates).filter(t => t.assessmentRule.kind === 'jlpt-mock')
+    ];
+    function preferredTemplate(ui, campus, grade, name) {
+        const scope = classKey(campus, grade, name);
+        const latest = ui.store.state.data.students.reduce((best, student) => {
+            const preference = student.classExamTemplate;
+            const current = classKey(student.campus, student.grade, student.teachingClass);
+            return current === scope && preference?.scope === scope && (!best || preference.ts > best.ts)
+                ? preference : best;
+        }, null);
+        return templatesFor(ui).find(t => t.id === latest?.id);
+    }
+    const editGroup = UI.prototype.editStudentGroup;
+    UI.prototype.editStudentGroup = function(kind, name, campus, grade) {
+        const result = editGroup.call(this, kind, name, campus, grade);
+        if (kind !== 'teachingClass') return result;
+        const dialog = document.querySelector('.gk2-roster-group-dialog[open]');
+        const field = dialog?.querySelector('.gk2-roster-group-field');
+        if (!field) return result;
+        const label = document.createElement('label');
+        label.className = field.className;
+        const caption = document.createElement('span');
+        caption.textContent = '默认考试模板';
+        const select = document.createElement('select');
+        select.dataset.classExamTemplate = '';
+        select.add(new Option('不设置', ''));
+        for (const template of templatesFor(this)) select.add(new Option(template.name, template.id));
+        select.value = preferredTemplate(this, campus, grade, name)?.id || '';
+        select.dataset.previous = select.value;
+        select.dataset.scope = classKey(campus, grade, name);
+        label.append(caption, select);
+        field.after(label);
+        return result;
+    };
+    UI.prototype._saveClassTemplate = function(dialog, students, campus, grade, name) {
+        const select = dialog.querySelector('[data-class-exam-template]');
+        const scope = classKey(campus, grade, name);
+        if (!select || (select.value === select.dataset.previous && scope === select.dataset.scope)) return false;
+        const ts = Date.now();
+        for (const student of students) {
+            student.classExamTemplate = { scope, id: select.value, ts };
+            student._ts = ts;
+        }
+        return true;
+    };
+    const renderStudents = UI.prototype.renderStudents;
+    UI.prototype.renderStudents = function(...args) {
+        const result = renderStudents.apply(this, args);
+        for (const button of document.querySelectorAll('#tree-container-students [data-student-group-edit][data-kind="teachingClass"]')) {
+            const { campus, grade, value } = button.dataset;
+            const template = preferredTemplate(this, campus, grade, value);
+            if (!template) continue;
+            const summary = button.parentElement.querySelector(':scope > summary');
+            if (!summary) continue;
+            const badge = document.createElement('span');
+            badge.className = 'pill';
+            badge.dataset.classTemplateBadge = '';
+            badge.textContent = template.name;
+            summary.append(badge);
+        }
+        this._layoutStudentGroupEditButtons();
+        return result;
+    };
     function install(ui, prefix, exam) {
         const campuses = document.getElementById(prefix + '-campuses-container');
         const grade = document.getElementById(prefix + '-grade');
@@ -29,20 +95,85 @@
         const auth = ui._getAuth();
         if (exam && auth?.mode === 'teacher') return;
         const section = document.createElement('div');
-        section.style.marginTop = '10px';
+        section.className = 'exam-class-scope';
         const heading = document.createElement('div');
         heading.id = prefix + '-class-scope-label';
-        heading.className = 'field-label mb-sm';
+        heading.className = 'exam-field-label';
         heading.textContent = '参与日语班';
         const box = document.createElement('div');
         box.id = prefix + '-class-scope';
         box.className = campuses.className;
-        box.style.padding = campuses.style.padding;
         box.setAttribute('role', 'group');
         box.setAttribute('aria-labelledby', heading.id);
         section.append(heading, box);
         campuses.after(section);
-        let selected = new Set(exam?.classScope || []);
+        const focus = ui.store.state.globalFocus || {};
+        const selected = new Set(exam?.classScope || []);
+        if (!exam && focus.grades?.length === 1) grade.value = focus.grades[0];
+        if (!exam && focus.tClasses?.length) {
+            const candidates = ui.store.state.data.students.filter(student => student.grade === grade.value &&
+                student.rosterMembership?.archivedAt == null && focus.tClasses.includes(student.teachingClass) &&
+                (!focus.campuses?.length || focus.campuses.includes(student.campus)));
+            const scopes = new Set(candidates.map(student => key(student.campus, student.teachingClass)));
+            if (scopes.size && (focus.tClasses.length > 1 || scopes.size === 1)) {
+                const sites = new Set();
+                for (const scope of scopes) {
+                    selected.add(scope);
+                    sites.add(JSON.parse(scope)[0]);
+                }
+                for (const input of campuses.querySelectorAll('input')) input.checked = sites.has(input.value);
+            }
+        }
+        const picker = !exam && document.getElementById('m-template-select');
+        let manual = false, previousAuto = '';
+        if (picker) {
+            picker.closest('div').parentElement.querySelector('[data-class-template-hint]')?.remove();
+            const hint = document.createElement('p');
+            hint.className = 'field-hint';
+            hint.dataset.classTemplateHint = '';
+            picker.closest('div').after(hint);
+            picker.onchange = () => {
+                manual = true;
+                if (picker.value) ui.loadExamTemplate(picker.value, { silent: true });
+                updateTemplate();
+            };
+        }
+        function updateTemplate() {
+            if (!picker) return;
+            const scopes = ui._readExamClassScope('m');
+            const defaults = scopes.map(value => {
+                const [campus, name] = JSON.parse(value);
+                return preferredTemplate(ui, campus, grade.value, name)?.id || '';
+            });
+            const conflict = new Set(defaults).size > 1;
+            const hint = document.querySelector('[data-class-template-hint]');
+            const suggestion = !conflict && defaults[0];
+            if (!manual && suggestion && !picker.value) {
+                previousAuto = suggestion;
+                ui.loadExamTemplate(suggestion, { silent: true });
+            }
+            if (!manual && previousAuto && !conflict && suggestion !== previousAuto) {
+                if (suggestion) ui.loadExamTemplate(suggestion, { silent: true });
+                else {
+                    const list = document.getElementById('q-list');
+                    list.dataset.gk2JlptTemplate = '';
+                    list.innerHTML = '<div class="q-row" draggable="true">' + ui._renderQuestionRow({ name: '听力', max: 30, old: null }) + '</div>';
+                    const note = document.getElementById('gk2-jlpt-entry-note');
+                    if (note) note.hidden = true;
+                    const add = list.closest('dialog')?.querySelector('button[onclick*="addQ"]');
+                    if (add) add.disabled = false;
+                    picker.value = '';
+                    ui._syncQuestionRows('q-list');
+                }
+                previousAuto = suggestion || '';
+            }
+            const needsTemplate = conflict && !picker.value;
+            picker.setCustomValidity(needsTemplate ? '请为本场联考选择模板' : '');
+            hint.textContent = conflict
+                ? (picker.value ? '各班默认模板不同，保留当前模板。可为本场更换。' : '各班默认模板不同，请选择本场模板。')
+                : scopes.length && !suggestion ? '所选班级未设置默认模板，可选模板或手动配置题型。'
+                : '本场调整不会修改班级默认模板。';
+        }
         function render() {
             const checked = [...campuses.querySelectorAll('input:checked')].map(input => input.value);
             const options = new Map();
@@ -61,7 +192,11 @@
                 input.value = value;
                 input.checked = selected.has(value) || auth?.mode === 'teacher' || (!exam && options.size === 1);
                 input.disabled = auth?.mode === 'teacher';
-                input.onchange = () => input.checked ? selected.add(value) : selected.delete(value);
+                input.onchange = () => {
+                    if (input.checked) selected.add(value);
+                    else selected.delete(value);
+                    updateTemplate();
+                };
                 label.append(input, document.createTextNode(` ${place.campus} · ${place.teachingClass}`));
                 box.append(label);
             }
@@ -73,6 +208,7 @@
                 hint.textContent = message;
                 box.append(hint);
             }
+            updateTemplate();
         }
         campuses.onchange = grade.onchange = date.onchange = render;
         render();
@@ -82,6 +218,12 @@
         const result = create.apply(this, args);
         install(this, 'm');
         return result;
+    };
+    const submitExam = UI.prototype.doCreateExam;
+    UI.prototype.doCreateExam = function(...args) {
+        const picker = document.getElementById('m-template-select');
+        if (picker?.validity.customError && !picker.value) return picker.reportValidity();
+        return submitExam.apply(this, args);
     };
     const openBasic = UI.prototype.openEditExamBasicInfoModal;
     UI.prototype.openEditExamBasicInfoModal = function(id) {

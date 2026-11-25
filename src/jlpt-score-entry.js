@@ -155,7 +155,7 @@
             row.draggable = !locked;
             row.querySelectorAll('input,button').forEach(control => { control.disabled = locked && !(control.matches('.q-count') && templateFor(id)?.assessmentRule.kind === 'jlpt-mock'); });
         });
-        const addButton = list.parentElement?.querySelector('button[onclick*="addQ"]');
+        const addButton = list.closest('dialog')?.querySelector('button[onclick*="addQ"]');
         if (addButton) addButton.disabled = locked;
         let note = document.getElementById('gk2-jlpt-entry-note');
         if (locked && !note) {
