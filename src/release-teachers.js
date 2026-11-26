@@ -41,41 +41,17 @@
         workspace.querySelector('form').hidden = true;
         empty.hidden = false;
         list.replaceChildren();
+        const expired = error.status === 401 || error.status === 403;
         const status = document.createElement('p');
-        status.textContent = error.status === 401 || error.status === 403
-            ? '请使用 Gakupo 管理员口令，管理两边共用的教师账号。'
-            : '云端教师目录暂时不可用，请重试。';
-        list.append(status);
+        status.textContent = expired ? '管理员会话已失效，请返回系统登录。' : '云端教师目录暂时不可用，请重试。';
         const button = document.createElement('button');
         button.type = 'button';
-        button.textContent = '重试';
-        list.append(button);
-        if (error.status !== 401 && error.status !== 403) {
-            button.onclick = retry;
-            return;
-        }
-        const password = document.createElement('input');
-        password.type = 'password';
-        password.autocomplete = 'current-password';
-        password.placeholder = '输入 Gakupo 管理员口令';
-        password.setAttribute('aria-label', 'Gakupo 管理员口令');
-        list.insertBefore(password, button);
-        button.textContent = '连接云端';
-        const connect = async () => {
-            if (!password.value || button.disabled) return;
-            button.disabled = true;
-            try {
-                await directoryRequest('session', { role: 'admin', loginId: 'nekosensei', password: password.value });
-                password.value = '';
-                retry();
-            } catch (failure) {
-                status.textContent = failure.message;
-            } finally {
-                button.disabled = false;
-            }
-        };
-        button.onclick = connect;
-        password.onkeydown = event => { if (event.key === 'Enter') connect(); };
+        button.textContent = expired ? '返回登录' : '重试';
+        button.onclick = expired ? () => {
+            window.__gakutenAuth.clearAuth();
+            location.reload();
+        } : retry;
+        list.append(status,button);
     }
     const read = () => JSON.parse(localStorage.getItem(key) || '[]');
     const normalize = value => value.trim().toLowerCase();
@@ -116,13 +92,32 @@
     window.gk2TeacherAccounts = {
         sharedDirectoryAvailable: useSharedDirectory,
         directoryRequest,
-        connectDirectory: password => directoryRequest('session', {role:'admin',loginId:'nekosensei',password}),
+        async resolvePassword(password, legacy) {
+            if (!useSharedDirectory() || legacy?.mode === 'teacher' || !password) return legacy;
+            try {
+                const {user} = await directoryRequest('session', {role:'admin',loginId:'nekosensei',password});
+                if (user?.role === 'admin' && user.active) return {mode:'admin',cloudAdmin:true};
+            } catch (error) {
+                if (error.status !== 401 && error.status !== 403) throw error;
+            }
+            throw Error('管理员口令不正确，请使用 Gakupo 的管理员口令。');
+        },
+        async restoreAdminSession() {
+            try {
+                const {user} = await directoryRequest('roster');
+                return user?.role === 'admin' && user.active === true;
+            } catch (error) {
+                if (error.status === 401 || error.status === 403) return false;
+                throw error;
+            }
+        },
         async disconnectDirectory() {
             if (!useSharedDirectory()) return;
             try { await directoryRequest('session',undefined,'DELETE'); }
             finally { if (localFile) sessionStorage.removeItem(tokenKey); }
         },
         validateSession(identity) {
+            if (identity.mode === 'admin' && useSharedDirectory() && !identity.cloudAdmin) return null;
             if (!identity.teacherId) return identity;
             const teacher = currentTeacher(identity);
             const scope = classKey(identity.campus, identity.grade, identity.classId);

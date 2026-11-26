@@ -85,9 +85,9 @@ def build(destination):
     foundation = foundation.replace("btn.classList.toggle('is-loading', loading);\n                    btn.disabled = loading;",
                                     "const field = document.getElementById('auth-teacher-id');\n                    const teacherEntry = field && !field.hidden;\n                    btn.classList.toggle('is-loading', loading && !teacherEntry);\n                    btn.disabled = loading && !teacherEntry;", 1)
     foundation = foundation.replace("if (text) text.textContent = ready ?", "if (text) text.textContent = teacherEntry || ready ?", 1)
-    foundation = foundation.replace('return parsed;', 'return window.gk2TeacherAccounts?.validateSession(parsed) ?? (parsed.teacherId ? null : parsed);', 1)
+    foundation = foundation.replace('return parsed;', 'return window.gk2TeacherAccounts ? window.gk2TeacherAccounts.validateSession(parsed) : parsed;', 1)
     foundation = foundation.replace("if (!window.pinyinPro && !await window.__gakutenLoadPinyin())", "const teacherField = document.getElementById('auth-teacher-id');\n                const teacherId = teacherField && !teacherField.hidden ? teacherField.value.trim() : null;\n                if (teacherId === '') { setErrorVisible(true, '请输入教师 ID。'); return false; }\n                if (!teacherId && !window.pinyinPro && !await window.__gakutenLoadPinyin())", 1)
-    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", "let auth;\n                try {\n                    auth = teacherId ? await window.gk2TeacherAccounts.signIn(teacherId) : resolveAuthByPassword(input ? input.value : '');\n                } catch (error) {\n                    setErrorVisible(true, error.message);\n                    return false;\n                }", 1)
+    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", "let auth;\n                try {\n                    auth = teacherId ? await window.gk2TeacherAccounts.signIn(teacherId) : await window.gk2TeacherAccounts.resolvePassword(input?.value || '', resolveAuthByPassword(input?.value || ''));\n                } catch (error) {\n                    setErrorVisible(true, error.message);\n                    return false;\n                }", 1)
     foundation = foundation.replace("setErrorVisible(true, '账号或密码错误（请注意大小写）');", "setErrorVisible(true, teacherId ? '教师 ID 不存在或账号已停用。' : '账号或密码错误（请注意大小写）');", 1)
     foundation = foundation.replace('const doLogout = () => {', "const doLogout = async () => {\n                    await window.gk2TeacherAccounts?.disconnectDirectory().catch(() => {});\n                    if (window.gk2ReleaseTest) sessionStorage.setItem('gk2_logged_out', '1');", 1)
     foundation = foundation.replace(
@@ -95,6 +95,14 @@ def build(destination):
         '''            document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     const identity = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
+                    if (identity?.mode === 'admin' && identity.cloudAdmin && window.gk2TeacherAccounts.sharedDirectoryAvailable()) {
+                        if (!await window.gk2TeacherAccounts.restoreAdminSession() &&
+                            localStorage.getItem(AUTH_KEY) === JSON.stringify(identity)) {
+                            clearAuth();
+                            applyAuthToUI();
+                        }
+                        return;
+                    }
                     if (!identity?.sharedDirectory) return;
                     const auth = await window.gk2TeacherAccounts.restoreSharedSession(identity);
                     const stored = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
