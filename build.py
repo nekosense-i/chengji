@@ -60,6 +60,14 @@ def build(destination):
     environment = environment.replace("window.gk2LegacySeed=nativeLocal.getItem", "window.gk2LegacySeed=testMode || window.gk2TeacherWorkspaceId ? null : nativeLocal.getItem", 1)
     environment = environment.replace('getItem:k=>storage.getItem(prefix+k)', "getItem:k=>testMode && k==='gakuten_cloud_sync_disabled' ? '1' : storage.getItem(prefix+k)", 1)
     environment = environment.replace('window.fetch=async(input,options={})=>{', "window.fetch=async(input,options={})=>{\n  if(testMode) throw new DOMException('测试模式仅使用本机数据', 'SecurityError');", 1)
+    environment = environment.replace(
+        "const url=new URL(typeof input==='string'?input:input.url),method=String(options.method||input?.method||'GET').toUpperCase();",
+        '''const url=new URL(typeof input==='string'?input:input.url,location.href),method=String(options.method||input?.method||'GET').toUpperCase();
+  if (url.origin===location.origin && location.hostname==='chengji.nekosensei.cn' && !url.search && !url.hash && (
+      /^\/gakupo-directory\/(session|roster|roster-import|teachers)$/.test(url.pathname) &&
+          (['GET','POST'].includes(method) || method==='DELETE' && url.pathname.endsWith('/session')) ||
+      url.pathname==='/gakuten-teacher-grades' && ['GET','POST'].includes(method)
+  )) return nativeFetch(input,{...options,redirect:'error',credentials:'same-origin'});''',1)
     environment = environment.replace("isolated:false,mode:'original-cloud'", "isolated:testMode,mode:testMode?'release-test':'original-cloud'", 1)
     environment = environment.replace("if(v.startsWith('demo-'))", "if(!window.gk2ReleaseTest && v.startsWith('demo-'))", 1)
     environment += '\nif (window.gk2ReleaseTest) {\n' + (ROOT / 'src/demo.js').read_text() + '\n}\n'
