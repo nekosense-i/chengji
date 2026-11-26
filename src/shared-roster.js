@@ -165,6 +165,26 @@
         return {changed,gradeChanges};
     }
 
+    function examParticipants(directory, grade, classScope) {
+        const {groups} = directoryIndex(directory);
+        const selected = classScope.map(encoded=>{
+            const [campus,teachingClass] = JSON.parse(encoded);
+            return groups.get(scopeKey({campus,grade,teachingClass}));
+        });
+        if (selected.some(info=>!info)) throw Error('有参试班不在当前共享名单中，请刷新后重试。');
+        const categories = new Set(selected.map(info=>info.teachingCategory || ''));
+        if (categories.has('gaokao') && categories.has('study-abroad')) throw Error('高考日语班和留学班请分别创建考试。');
+        if (categories.size !== 1 || categories.has('')) return null;
+        const classes = selected.map(({id,campus,grade,teachingClass,teachingCategory})=>
+            ({id,campus,grade,teachingClass,teachingCategory}));
+        const students = classes.flatMap(({id})=>Object.values(directory.classes[id].students)
+            .map(student=>({studentId:student.gakutenId,classId:id})));
+        if (students.some(student=>!student.studentId) || new Set(students.map(student=>student.studentId)).size !== students.length) {
+            throw Error('参试学生的共享身份有缺失或重复。');
+        }
+        return {classes,students};
+    }
+
     function applyRenames(directory, data) {
         const events = new Map();
         for (const {info} of Object.values(directory.classes)) {
@@ -225,7 +245,7 @@
         return request('roster',{syncProtocol:2,userId:directory.user.id,operationId,changes,epochs});
     }
 
-    const sharedRoster = {directoryIndex,makeChanges,project,applyRenames,submit};
+    const sharedRoster = {directoryIndex,makeChanges,project,examParticipants,applyRenames,submit};
     if (typeof module === 'object' && module.exports) module.exports = sharedRoster;
     else window.gk2SharedRoster = sharedRoster;
 })();

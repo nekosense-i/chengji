@@ -88,6 +88,26 @@
         }
     }
 
+    const openExam = UI.prototype.openExamModal;
+    UI.prototype.openExamModal = function (...args) {
+        const result = openExam.apply(this,args);
+        if (active()) {
+            const call = request('roster');
+            this.sharedExamDirectory = {pending:true};
+            const load = this.sharedExamDirectory;
+            call.then(state=>Object.assign(load,{state,pending:false}),
+                error=>Object.assign(load,{error,pending:false}));
+        }
+        return result;
+    };
+    UI.prototype.sharedExamParticipants = function (grade,classScope) {
+        if (!active()) return null;
+        const load = this.sharedExamDirectory;
+        if (load?.pending) throw Error('正在读取参试班级，请稍候。');
+        if (!load?.state) throw Error('未能读取共享班级，请重新打开新建考试窗口。');
+        return actions.examParticipants(load.state,grade,classScope);
+    };
+
     const edit = UI.prototype.updStu;
     UI.prototype.updStu = function (id, field, value) {
         if (!active() || !['name','adminClass','campus','teachingClass','grade'].includes(field)) {

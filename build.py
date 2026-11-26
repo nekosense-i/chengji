@@ -316,7 +316,10 @@ def build(destination):
     core = core.replace(
         exam_create_anchor,
         '                        const assessmentRule = window.gk2JLPT.templateFor(document.getElementById("m-template-select")?.value)?.assessmentRule;\n'
-        '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, classScope, entryMode, ...(assessmentRule ? { assessmentRule: JSON.parse(JSON.stringify(assessmentRule)) } : {}) });',
+        '                        let participants;\n'
+        '                        try { participants = this.sharedExamParticipants?.(g,classScope); }\n'
+        '                        catch (error) { return Utils.msg(error.message,"error"); }\n'
+        '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, classScope, entryMode, ...(participants ? {sharedParticipants:participants} : {}), ...(assessmentRule ? { assessmentRule: JSON.parse(JSON.stringify(assessmentRule)) } : {}) });',
         1,
     )
     # Count validation applies to both correct and incorrect question counts.
