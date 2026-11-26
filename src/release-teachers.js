@@ -8,15 +8,6 @@
         return { mode: 'teacher', teacherId: teacher.id, version: teacher.version,
             name: teacher.name, loginId: teacher.loginId, campus, grade, classId };
     };
-    const hex = bytes => Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-    async function hash(password, salt) {
-        if (!crypto.subtle) throw Error('当前浏览器无法使用凭证加密，请通过本机文件或 HTTPS 打开。');
-        const encoder = new TextEncoder();
-        const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-        return hex(new Uint8Array(await crypto.subtle.deriveBits({
-            name: 'PBKDF2', salt: encoder.encode(salt), iterations: 600000, hash: 'SHA-256'
-        }, key, 256)));
-    }
     function currentTeacher(identity) {
         return read().find(teacher => teacher.id === identity.teacherId &&
             teacher.active && teacher.version === identity.version);
@@ -38,9 +29,9 @@
             const scope = classKey(identity.campus, identity.grade, identity.classId);
             return teacher?.classes.includes(scope) ? session(teacher, scope) : null;
         },
-        async signIn(id, password) {
+        signIn(id) {
             const teacher = read().find(entry => entry.loginId === normalize(id) && entry.active);
-            if (!teacher || !password || await hash(password, teacher.salt) !== teacher.passwordHash) return null;
+            if (!teacher) return null;
             const scope = teacher.classes.find(value => availableClasses().has(value));
             if (!scope) throw Error('该账号暂无可用教学班，请联系管理员。');
             return session(teacher, scope);
@@ -109,8 +100,6 @@
                 editor.elements.teacherName.value = teacher?.name || '';
                 editor.elements.loginId.value = teacher?.loginId || '';
                 editor.elements.active.checked = teacher?.active ?? true;
-                editor.elements.password.required = !teacher;
-                editor.querySelector('[data-password-label]').textContent = teacher ? '新凭证（留空保留原凭证）' : '初始登录凭证';
                 const fieldset = editor.querySelector('[data-teacher-classes]');
                 fieldset.replaceChildren();
                 const legend = document.createElement('legend');
@@ -130,25 +119,23 @@
                 const status = editor.querySelector('[role="alert"]');
                 const save = editor.querySelector('[type="submit"]');
                 status.textContent = '';
-                editor.onsubmit = async event => {
+                editor.onsubmit = event => {
                     event.preventDefault();
                     const fields = new FormData(editor);
                     const name = fields.get('teacherName').trim(), loginId = normalize(fields.get('loginId'));
-                    const classes = fields.getAll('scope'), password = fields.get('password');
+                    const classes = fields.getAll('scope');
                     if (!name || !loginId || /\s/.test(loginId) || !classes.length) {
                         status.textContent = '请填写教师姓名、无空格的 ID，并至少选择一个教学班。';
                         return;
                     }
                     save.disabled = true;
                     try {
-                        const salt = password ? hex(crypto.getRandomValues(new Uint8Array(16))) : teacher.salt;
-                        const passwordHash = password ? await hash(password, salt) : teacher.passwordHash;
                         if (window.__gakutenAuth.getAuth()?.mode !== 'admin') throw Error('请重新登录管理员账号。');
                         const accounts = read();
                         if (accounts.some(entry => entry.loginId === loginId && entry.id !== teacher?.id)) throw Error('该教师 ID 已被使用。');
                         const index = accounts.findIndex(entry => entry.id === teacher?.id);
                         if (teacher && accounts[index]?.version !== teacher.version) throw Error('账号已变更，请重新打开编辑。');
-                        const updated = { id: teacher?.id || crypto.randomUUID(), name, loginId, salt, passwordHash,
+                        const updated = { id: teacher?.id || crypto.randomUUID(), name, loginId,
                             active: fields.has('active'), classes, version: (teacher?.version || 0) + 1 };
                         if (index < 0) accounts.push(updated);
                         else accounts[index] = updated;

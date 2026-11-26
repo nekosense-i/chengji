@@ -155,14 +155,20 @@ window.gk2DismissibleDialog = function (dialog, label) {
         const loginId = document.getElementById('auth-teacher-id');
         const loginPassword = document.getElementById('auth-password');
         const switchEntry = document.getElementById('auth-switch-entry');
+        const passwordField = loginPassword.closest('.auth-password-wrap');
+        const loginButton = document.querySelector('#auth-overlay .auth-btn');
         loginId.addEventListener('keydown', event => {
-            if (event.key === 'Enter') loginPassword.focus();
+            if (event.key !== 'Enter' || event.isComposing) return;
+            event.preventDefault();
+            loginButton.click();
         });
         switchEntry.onclick = () => {
             loginId.hidden = !loginId.hidden;
             loginId.value = '';
             loginPassword.value = '';
-            loginPassword.placeholder = loginId.hidden ? '请输入登录口令' : '请输入教师登录凭证';
+            passwordField.hidden = !loginId.hidden;
+            document.getElementById('auth-error').style.display = 'none';
+            window.__gakutenUpdatePinyinStatus();
             document.getElementById('auth-current-entry').textContent = loginId.hidden ? '管理员或原班级口令登录' : '本机教师账号';
             switchEntry.textContent = loginId.hidden ? '教师 ID 登录' : '返回口令登录';
             (loginId.hidden ? loginPassword : loginId).focus();

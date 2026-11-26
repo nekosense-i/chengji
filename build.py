@@ -59,9 +59,13 @@ def build(destination):
 
     foundation_path = re.search(r'assets/app/foundation\.[a-f0-9]+\.js', html)[0]
     foundation = (ROOT / foundation_path).read_text()
+    foundation = foundation.replace("btn.classList.toggle('is-loading', loading);\n                    btn.disabled = loading;",
+                                    "const field = document.getElementById('auth-teacher-id');\n                    const teacherEntry = field && !field.hidden;\n                    btn.classList.toggle('is-loading', loading && !teacherEntry);\n                    btn.disabled = loading && !teacherEntry;", 1)
+    foundation = foundation.replace("if (text) text.textContent = ready ?", "if (text) text.textContent = teacherEntry || ready ?", 1)
     foundation = foundation.replace('return parsed;', 'return window.gk2TeacherAccounts?.validateSession(parsed) ?? (parsed.teacherId ? null : parsed);', 1)
     foundation = foundation.replace("if (!window.pinyinPro && !await window.__gakutenLoadPinyin())", "const teacherField = document.getElementById('auth-teacher-id');\n                const teacherId = teacherField && !teacherField.hidden ? teacherField.value.trim() : null;\n                if (teacherId === '') { setErrorVisible(true, '请输入教师 ID。'); return false; }\n                if (!teacherId && !window.pinyinPro && !await window.__gakutenLoadPinyin())", 1)
-    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", "let auth;\n                try {\n                    auth = teacherId ? await window.gk2TeacherAccounts.signIn(teacherId, input.value) : resolveAuthByPassword(input ? input.value : '');\n                } catch (error) {\n                    setErrorVisible(true, error.message);\n                    return false;\n                }", 1)
+    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", "let auth;\n                try {\n                    auth = teacherId ? window.gk2TeacherAccounts.signIn(teacherId) : resolveAuthByPassword(input ? input.value : '');\n                } catch (error) {\n                    setErrorVisible(true, error.message);\n                    return false;\n                }", 1)
+    foundation = foundation.replace("setErrorVisible(true, '账号或密码错误（请注意大小写）');", "setErrorVisible(true, teacherId ? '教师 ID 不存在或账号已停用。' : '账号或密码错误（请注意大小写）');", 1)
     foundation = foundation.replace('const doLogout = () => {', "const doLogout = () => {\n                    if (window.gk2ReleaseTest) sessionStorage.setItem('gk2_logged_out', '1');", 1)
     foundation += '\n' + (ROOT / 'src/release-teachers.js').read_text()
 
