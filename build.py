@@ -91,6 +91,46 @@ def build(destination):
     core = (ROOT / core_path).read_text()
     core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
     core = core.replace('if (barEl) barEl.style.width = `${pct.toFixed(1)}%`;', "if (barEl) { barEl.style.width = `${pct.toFixed(1)}%`; barEl.dataset.level = pct > 90 ? 'high' : pct >= 70 ? 'warning' : 'normal'; }", 1)
+    core = core.replace("() => {\n                            this._archiveRosterStudents([id]);",
+                        "async () => {\n                            if (await this._archiveRosterStudents([id]) === false) return;")
+    core = core.replace("() => {\n                            this._archiveRosterStudents(ids);",
+                        "async () => {\n                            if (await this._archiveRosterStudents(ids) === false) return;")
+    bulk_start = core.index("                openBulkEditStudents()")
+    bulk_end = core.index("                editStudentGroup(kind, oldValue, campus",bulk_start)
+    bulk = core[bulk_start:bulk_end]
+    bulk = bulk.replace("addEventListener('click', () => {\n                        const changes",
+                        "addEventListener('click', async () => {\n                        const changes",1)
+    bulk = bulk.replace("                        this.store.pushSnapshot();",'''                        const shared = this.submitSharedRosterBulkEdit?.(ids,changes,tagChange);
+                        if (shared) {
+                            if (await shared) close();
+                            return;
+                        }
+                        this.store.pushSnapshot();''',1)
+    core = core[:bulk_start] + bulk + core[bulk_end:]
+    group_start = core.index("                editStudentGroup(kind, oldValue, campus")
+    group_end = core.index("                bulkDeleteStudents()", group_start)
+    group = core[group_start:group_end]
+    group = group.replace("addEventListener('click', () => {\n                        const nextValue",
+                          "addEventListener('click', async () => {\n                        const nextValue", 1)
+    group = group.replace("                        const duplicate = students.some", '''                        const shared = this.submitSharedGroupRename?.(kind,oldValue,nextValue,campus,grade);
+                        if (shared) {
+                            if (await shared) close();
+                            return;
+                        }
+                        const duplicate = students.some''', 1)
+    core = core[:group_start] + group + core[group_end:]
+    import_anchor = "                        if (this._rosterImporting) return;"
+    if core.count(import_anchor) != 1:
+        raise RuntimeError('Shared roster import anchor changed')
+    core = core.replace(import_anchor, '''                        const sharedImport = this.submitSharedRosterImport?.(dataRows.map(row=>({
+                            name:val(row,'name'),campus:val(row,'campus'),grade:val(row,'grade'),
+                            teachingClass:val(row,'teachingClass') || '未分日语班',adminClass:val(row,'adminClass') || '-'
+                        })));
+                        if (sharedImport) {
+                            if (await sharedImport) { cleanup(); dialog.close(); }
+                            return;
+                        }
+                        if (this._rosterImporting) return;''', 1)
     anchor = '            return { Store, Sync, UI };'
     if core.count(anchor) != 1:
         raise RuntimeError('Production AppCore anchor changed')
@@ -317,6 +357,8 @@ def build(destination):
     features = features.replace("status.textContent=!sync.isEnabled()?", "status.dataset.state=sync.connectionStatus().state;status.textContent=!sync.isEnabled()?", 1)
     features += '\n' + (ROOT / 'src/jlpt-score-overview.js').read_text()
     features += '\n' + (ROOT / 'src/release-account.js').read_text()
+    features += '\n' + (ROOT / 'src/shared-roster.js').read_text()
+    features += '\n' + (ROOT / 'src/shared-roster-ui.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
     idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'

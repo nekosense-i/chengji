@@ -104,6 +104,9 @@
         return options;
     }
     window.gk2TeacherAccounts = {
+        sharedDirectoryAvailable: useSharedDirectory,
+        directoryRequest,
+        connectDirectory: password => directoryRequest('session', {role:'admin',loginId:'nekosensei',password}),
         async disconnectDirectory() {
             if (!useSharedDirectory()) return;
             await fetch('/gakupo-directory/session', { method: 'DELETE' });
@@ -131,7 +134,7 @@
             return sessionRead;
         },
         async signIn(id) {
-            if (useSharedDirectory()) {
+            if (useSharedDirectory() && window.gk2SharedTeacherGradesReady) {
                 await directoryRequest('session', { role: 'teacher', loginId: normalize(id) });
                 sharedTeacher = await readSharedTeacher();
                 const scope = sharedTeacher && cloudScope(null, sharedTeacher);
