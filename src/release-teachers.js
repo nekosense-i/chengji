@@ -89,7 +89,9 @@
                 const title = segments.at(-1) || label;
                 const campus = segments.length >= 3 ? segments[0] : '';
                 return { title, label, summary: campus ? campus + '·' + title : title,
-                    group: segments.length >= 2 ? segments.slice(0, -1).join(' · ') : '其他教学班' };
+                    grade: segments.length >= 2 ? segments.at(-2) : '',
+                    group: segments.length >= 2 ? segments.slice(0, -1).join(' · ') : '其他教学班',
+                    campus };
             }
             function showFeedback(message = '', state = 'error') {
                 clearTimeout(feedbackTimer);
@@ -173,6 +175,7 @@
                     editorState.textContent = '新建中';
                 }
                 editor.reset();
+                find('[data-teacher-cancel]').textContent = teacher ? '取消编辑' : '取消';
                 editor.elements.teacherName.value = teacher?.name || '';
                 editor.elements.loginId.value = teacher?.loginId || '';
                 editor.elements.active.checked = teacher?.active ?? true;
@@ -181,14 +184,19 @@
                 const scopes = new Set([...options.keys(), ...selected]);
                 const groups = new Map();
                 for (const scope of scopes) {
-                    const { title, label, group } = describeClass(scope);
-                    if (!groups.has(group)) groups.set(group, []);
-                    groups.get(group).push({ scope, title, label });
+                    const { title, label, group, campus, grade } = describeClass(scope);
+                    if (!groups.has(group)) {
+                        const gradeNumber = grade.match(/\d+/);
+                        groups.set(group, { group, campus, gradeNumber: gradeNumber ? Number(gradeNumber[0]) : -1, items: [] });
+                    }
+                    groups.get(group).items.push({ scope, title, label });
                 }
-                const orderedGroups = [...groups].sort((a, b) =>
-                    Number(b[1].some(item => selected.has(item.scope))) -
-                    Number(a[1].some(item => selected.has(item.scope))));
-                for (const [group, items] of orderedGroups) {
+                const orderedGroups = [...groups.values()].sort((a, b) =>
+                    Number(!a.campus) - Number(!b.campus) ||
+                    a.campus.localeCompare(b.campus, 'zh-CN') ||
+                    b.gradeNumber - a.gradeNumber ||
+                    a.group.localeCompare(b.group, 'zh-CN'));
+                for (const { group, items } of orderedGroups) {
                     const section = element('section', 'teacher-auth-class-group');
                     const chips = element('div', 'teacher-auth-chips');
                     for (const { scope, title, label } of items.sort((a, b) =>

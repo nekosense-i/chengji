@@ -120,6 +120,7 @@
     font-size: 13px;
 }
 .teacher-auth-workspace .teacher-auth-fields input { margin-top: 6px; }
+.teacher-auth-workspace .teacher-auth-id-hint { display: block; margin-top: 4px; color: #64748b; font-size: 12px; }
 .teacher-auth-workspace :is(input[type="search"], .teacher-auth-fields input):focus {
     outline: none !important; border: 1px solid var(--teacher-accent) !important; box-shadow: var(--teacher-focus) !important;
 }
@@ -148,7 +149,7 @@
 }
 .teacher-auth-workspace .teacher-auth-class-heading button:hover { text-decoration: underline; }
 .teacher-auth-workspace .teacher-auth-classes {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; max-height: 300px; overflow-y: auto;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; max-height: 400px; overflow-y: auto;
     padding: 14px 16px; border: 1px solid var(--teacher-line); border-radius: 12px; background: #fafbfd;
 }
 .teacher-auth-workspace .teacher-auth-class-group { min-width: 0; }

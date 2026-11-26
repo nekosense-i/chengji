@@ -317,7 +317,7 @@ window.gk2IconMarkup = function(name) {
                     <form hidden>
                         <div class="teacher-auth-fields">
                             <label>教师姓名 <span class="teacher-auth-required" aria-hidden="true">*</span><input name="teacherName" maxlength="80" placeholder="例如：张老师" required></label>
-                            <label>教师 ID <span class="teacher-auth-required" aria-hidden="true">*</span><input name="loginId" maxlength="80" placeholder="例如：T202601" required autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+                            <label>教师 ID <span class="teacher-auth-required" aria-hidden="true">*</span><input name="loginId" maxlength="80" placeholder="例如：T202601" aria-describedby="teacher-auth-id-hint" required autocomplete="off" autocapitalize="none" spellcheck="false"><small id="teacher-auth-id-hint" class="teacher-auth-id-hint">该 ID 将直接作为教师登录凭证，保存时自动去除首尾空格。</small></label>
                         </div>
                         <label class="teacher-auth-enable">
                             <span><strong>启用账号</strong><small>关闭后将暂停该教师的登录与访问权限。</small></span>
