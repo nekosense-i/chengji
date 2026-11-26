@@ -153,31 +153,31 @@
             const teacher = identity.teacherId && currentTeacher(identity);
             if (!teacher) return;
             const classes = availableClasses();
-            const select = document.createElement('select');
-            select.setAttribute('aria-label', '切换负责班级');
             const roster = showSingle && window.app.ui.cur === 'students';
-            if (roster) select.add(new Option('全部负责班级',''));
-            for (const scope of teacher.classes) {
-                if (classes.has(scope) || identity.sharedDirectory) {
-                    select.add(new Option(classes.get(scope) || JSON.parse(scope).join(' · '), scope));
-                }
+            const scopes = teacher.classes.filter(scope=>classes.has(scope) || identity.sharedDirectory);
+            if (scopes.length < (showSingle ? 1 : 2)) return;
+            const selected = roster ? window.app.ui.sharedRosterFilter || '' : classKey(identity.campus, identity.grade, identity.classId);
+            for (const scope of roster ? ['', ...scopes] : scopes) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'ms-item gk2-assigned-class-option';
+                button.textContent = scope ? classes.get(scope) || JSON.parse(scope).join(' · ') : '全部负责班级';
+                button.setAttribute('aria-pressed', String(scope === selected));
+                button.onclick = () => {
+                    const latest = currentTeacher(identity);
+                    if (!latest || scope && !latest.classes.includes(scope)) return;
+                    if (roster) {
+                        window.app.ui.sharedRosterFilter = scope;
+                        window.app.ui.renderStudents();
+                        return;
+                    }
+                    window.app.store.writeLocalState();
+                    window.__gakutenAuth.saveAuth(session(latest, scope));
+                    window.__gakutenAuth.applyAuthToUI();
+                    window.app.ui.refresh();
+                };
+                container.append(button);
             }
-            if (select.options.length < (showSingle ? 1 : 2)) return;
-            select.value = roster ? window.app.ui.sharedRosterFilter || '' : classKey(identity.campus, identity.grade, identity.classId);
-            select.onchange = () => {
-                if (roster) {
-                    window.app.ui.sharedRosterFilter = select.value;
-                    window.app.ui.renderStudents();
-                    return;
-                }
-                const latest = currentTeacher(identity);
-                if (!latest?.classes.includes(select.value)) return;
-                window.app.store.writeLocalState();
-                window.__gakutenAuth.saveAuth(session(latest, select.value));
-                window.__gakutenAuth.applyAuthToUI();
-                window.app.ui.refresh();
-            };
-            container.append(select);
         },
         async render() {
             if (window.__gakutenAuth.getAuth()?.mode !== 'admin') return;

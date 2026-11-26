@@ -194,3 +194,18 @@
     .teacher-auth-workspace .teacher-auth-card { padding: 14px; }
     .teacher-auth-workspace .teacher-auth-fields { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 }
+
+button.gk2-assigned-class-option {
+    width: 100%;
+    text-align: start;
+    justify-content: flex-start;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+}
+button.gk2-assigned-class-option[aria-pressed="true"] {
+    color: var(--primary, #5141b6);
+    background: rgba(100, 81, 207, .10);
+    font-weight: 600;
+}
