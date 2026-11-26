@@ -2,10 +2,38 @@
 (() => {
     const key = (campus, name) => JSON.stringify([campus, name]);
     const allows = (exam, campus, name) => !exam?.classScope || exam.classScope.includes(key(campus, name));
+    function currentTeachingGroup(exam, auth) {
+        if (!auth?.sharedDirectory || !exam?.teacherParticipants) return null;
+        return exam.teacherSources?.find(info=>info.campus===auth.campus && info.grade===auth.grade &&
+            info.teachingClass===auth.classId) || null;
+    }
+    function sharedExamStudent(student, exam, auth) {
+        const group = currentTeachingGroup(exam,auth);
+        const place = exam.teacherParticipants[student.id];
+        return !!group && !!place && place.campus===group.campus && place.grade===group.grade &&
+            place.teachingCategory===group.teachingCategory;
+    }
+    const oldCanRead = Utils.canReadStudent;
+    Utils.canReadStudent = function (student,exam) {
+        const auth = window.__gakutenAuth?.getAuth();
+        if (student && auth?.sharedDirectory && exam?.teacherParticipants) return sharedExamStudent(student,exam,auth);
+        return oldCanRead(student,exam);
+    };
+    const oldPlace = Utils.getClassForExam;
+    Utils.getClassForExam = (student,exam) => exam?.teacherParticipants?.[student?.id] || oldPlace(student,exam);
+    for (const method of ['_getExamRosterStudents','_getExamEntryStudents']) {
+        const original = UI.prototype[method];
+        UI.prototype[method] = function (exam) {
+            const auth = this._getAuth();
+            if (!auth?.sharedDirectory || !exam?.teacherParticipants) return original.call(this,exam);
+            return this.store.state.data.students.filter(student=>sharedExamStudent(student,exam,auth));
+        };
+    }
     const policy = window.gk2Statistics;
     window.gk2Statistics = Object.freeze({
         ...policy,
         isStudentInExam(student, exam) {
+            if (exam?.teacherParticipants && student) return Object.hasOwn(exam.teacherParticipants,student.id);
             if (!policy.isStudentInExam(student, exam)) return false;
             if (!exam.classScope) return true;
             const place = Utils.getClassForExam(student, exam);
@@ -14,6 +42,7 @@
     });
     UI.prototype._examVisible = function(exam) {
         const auth = this._getAuth();
+        if (auth?.sharedDirectory && exam?.teacherParticipants) return !!currentTeachingGroup(exam,auth);
         return auth?.mode !== 'teacher' || (exam.grade === auth.grade &&
             (!this._getExamCampuses(exam).length || this._getExamCampuses(exam).includes(auth.campus)) &&
             allows(exam, auth.campus, auth.classId));
