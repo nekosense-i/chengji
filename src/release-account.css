@@ -74,12 +74,13 @@ body:not([data-gk2-page="students"]) .gk2-topbar .gk2-roster-switch { display: n
     margin-inline-end: 0;
 }
 .gk2-navigation .gk2-topbar .gk2-roster-switch .secondary {
-    height: 32px;
-    min-height: 32px;
+    box-sizing: border-box;
+    height: 32px !important;
+    min-height: 32px !important;
     margin: 0;
     padding: 0 13px;
     border: 0;
-    border-radius: 999px;
+    border-radius: 999px !important;
     background: transparent;
     box-shadow: none;
     color: #48546a;
