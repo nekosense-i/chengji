@@ -65,7 +65,7 @@ def build(destination):
         r'''const url=new URL(typeof input==='string'?input:input.url,location.href),method=String(options.method||input?.method||'GET').toUpperCase();
   if (location.protocol==='file:' && url.origin==='https://gakupo.nekosensei.cn' &&
       !url.username && !url.password && !url.search && !url.hash &&
-      (/^\/api\/(roster|teachers)$/.test(url.pathname) && ['GET','POST'].includes(method) ||
+      (/^\/api\/(roster|roster-import|teachers)$/.test(url.pathname) && ['GET','POST'].includes(method) ||
        url.pathname==='/api/session' && ['POST','DELETE'].includes(method))) {
     return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
   }

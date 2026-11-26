@@ -1,6 +1,6 @@
 (() => {
     const directory = window.gk2TeacherAccounts;
-    if (location.protocol === 'file:' || !directory.sharedDirectoryAvailable()) return;
+    if (!directory.sharedDirectoryAvailable()) return;
     const actions = window.gk2SharedRoster;
     const auth = () => window.__gakutenAuth.getAuth();
     const request = (route, body) => directory.directoryRequest(route, body);
@@ -11,12 +11,13 @@
     function apply(state) {
         const {ui,store} = window.app;
         const data = store.state.data;
+        const renamed = actions.applyRenames(state,data);
         const {changed,gradeChanges} = actions.project(state,data,{
             timestamp:Date.now(),effectiveDate:localDate(),
             participates:(student,exam)=>Utils.isStudentInExam(student,exam) && student.grade === exam.grade
         });
         if (gradeChanges.length) throw Error('共享名单包含跨年级的历史学生，请先核对其考试归属。');
-        if (!changed.length) return;
+        if (!changed.length && !renamed) return;
         const byId = new Map(changed.map(student=>[student.id,student]));
         const known = new Set(data.students.map(student=>student.id));
         data.students = data.students.map(student=>byId.get(student.id) || student)
@@ -63,7 +64,7 @@
         writing = true;
         try {
             const state = await request('roster');
-            if (!active() || state.user?.role !== 'admin') throw Error('请先在「教师与班级授权」连接共用的管理员账号。');
+            if (!active() || state.user?.role !== 'admin') throw Error('管理员会话已失效，请返回主登录页重新登录。');
             await ensureReady();
             apply(state);
             let next;
@@ -80,7 +81,7 @@
             return true;
         } catch (error) {
             Utils.msg(error.status === 401 || error.status === 403 ?
-                '请先在「教师与班级授权」连接共用的管理员账号。' : error.message,'error');
+                '管理员会话已失效，请返回主登录页重新登录。' : error.message,'error');
             return false;
         } finally {
             writing = false;

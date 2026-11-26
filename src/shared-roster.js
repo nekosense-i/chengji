@@ -42,11 +42,13 @@
                 (field==='campus' || info.campus===campus) &&
                 (field!=='teachingClass' || info.grade===grade));
             if (!selected.length || !name) throw Error('教学分组已变化，请刷新后检查。');
+            const rename = {field,original,name,campus,grade,id:command.operationId,at:Date.now()};
             return selected.flatMap(room=>{
                 const {info} = room, renamed = {...info,[field]:name};
                 if (groups.has(scopeKey(renamed))) throw Error('已有同名教学班。');
                 return [
                     change([info.id,'info',field],original,name),
+                    change([info.id,'info','gakutenScopeRenames'],info.gakutenScopeRenames,[...(info.gakutenScopeRenames || []),rename]),
                     ...Object.values(room.students).map(student=>change(studentPath(student,field),original,name))
                 ];
             });
@@ -155,14 +157,67 @@
         return {changed,gradeChanges};
     }
 
+    function applyRenames(directory, data) {
+        const events = new Map();
+        for (const {info} of Object.values(directory.classes)) {
+            for (const event of info.gakutenScopeRenames || []) events.set(event.id,event);
+        }
+        let changed = false;
+        for (const event of [...events.values()].sort((a,b)=>a.at-b.at)) {
+            const {field,original,name,campus,grade,id} = event;
+            if (!id || !['campus','teachingClass'].includes(field)) continue;
+            const isCampus = field === 'campus';
+            const rewrite = place => {
+                if (place[field] === original && (isCampus || place.campus === campus)) {
+                    place[field] = name;
+                    return true;
+                }
+                return false;
+            };
+            const mark = record => {
+                record.gakutenAppliedScopeRenames = [...(record.gakutenAppliedScopeRenames || []),id];
+                record._ts = Math.max(Date.now(),(record._ts || 0)+1);
+                changed = true;
+            };
+            for (const student of data.students) {
+                if (student.gakutenAppliedScopeRenames?.includes(id) || !isCampus && student.grade !== grade) continue;
+                let edited = rewrite(student);
+                for (const place of student.classHistory || []) edited = rewrite(place) || edited;
+                if (edited) mark(student);
+            }
+            for (const exam of data.exams) {
+                if (exam.gakutenAppliedScopeRenames?.includes(id) || !isCampus && exam.grade !== grade) continue;
+                let edited = false;
+                if (isCampus) {
+                    if (exam.campus === original) { exam.campus = name; edited = true; }
+                    if (exam.campuses?.includes(original)) {
+                        exam.campuses = [...new Set(exam.campuses.map(site=>site===original ? name : site))];
+                        edited = true;
+                    }
+                }
+                if (exam.classScope) {
+                    exam.classScope = [...new Set(exam.classScope.map(encoded=>{
+                        const [site,teachingClass] = JSON.parse(encoded);
+                        const place = {campus:site,teachingClass};
+                        if (!rewrite(place)) return encoded;
+                        edited = true;
+                        return JSON.stringify([place.campus,place.teachingClass]);
+                    }))];
+                }
+                if (edited) mark(exam);
+            }
+        }
+        return changed;
+    }
+
     async function submit(directory, command, request, operationId) {
-        const changes = makeChanges(directory,command);
+        const changes = makeChanges(directory,{...command,operationId});
         if (!changes.length) return directory;
         const epochs = Object.fromEntries(changes.map(item=>[item.path[0],directory.epochs[item.path[0]] ?? 0]));
         return request('roster',{syncProtocol:2,userId:directory.user.id,operationId,changes,epochs});
     }
 
-    const sharedRoster = {directoryIndex,makeChanges,project,submit};
+    const sharedRoster = {directoryIndex,makeChanges,project,applyRenames,submit};
     if (typeof module === 'object' && module.exports) module.exports = sharedRoster;
     else window.gk2SharedRoster = sharedRoster;
 })();
