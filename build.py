@@ -291,10 +291,18 @@ def build(destination):
     features = features.replace("tooltip.textContent=text;", "tooltip.textContent=window.gk2ReleaseTest ? '测试模式 · 仅保存到本机' : text;", 1)
     features = features.replace("$('.sidebar-logout-link').addEventListener", "$('.sidebar-logout-link')?.addEventListener", 1)
     features = features.replace("if(importButton&&assistantActions){assistantActions.append(importButton);importButton.hidden=true;}", """
-  const commands = $('#gk2-student-roster-commands');
-  if(add&&commands){commands.append(add);add.removeAttribute('aria-describedby');add.textContent='+ 添加学生';}
-  if(importButton&&commands){commands.append(importButton);importButton.removeAttribute('aria-describedby');importButton.textContent='批量导入';}
+  if(add)add.hidden=true;
+  if(importButton&&assistantActions){
+   assistantActions.append(importButton);
+   importButton.hidden=true;
+   importButton.innerHTML=window.gk2IconMarkup('plus');
+   importButton.removeAttribute('aria-describedby');
+  }
 """, 1)
+    features = features.replace("aria-label','导入学生名单与下载模板'", "aria-label','学生名单操作：添加学生、批量导入与下载模板'", 1)
+    features = features.replace("  const choices=[\n   ['download','下载空白学生名单'", "  const choices=[\n   ['plus','添加学生','录入一位学生的基本信息。','is-create',()=>ui.openAddStudentModal()],\n   ['download','下载空白学生名单'", 1)
+    features = features.replace("if(rosterImport)rosterImport.hidden=page!=='students';", "if(rosterImport)rosterImport.hidden=page!=='students'||!$('#gk2-teacher-panel').hidden;", 1)
+    features = features.replace("top.append(exportButton);setupExportFormatPopover", "$('#gk2-header-assistant-actions').append(exportButton);setupExportFormatPopover", 1)
     features = features.replace("const tracks=[details,analysis].filter(Boolean);", "const roster=$('.gk2-roster-switch');if(roster)slot.append(roster);\n  const tracks=[details,analysis,roster].filter(Boolean);", 1)
     features = features.replace("function syncCapsuleTabs(page,ui){", "function syncCapsuleTabs(page,ui){\n  const roster=$('.gk2-roster-switch');if(roster)roster.hidden=page!=='students'||window.__gakutenAuth?.getAuth()?.mode!=='admin';", 1)
     features = features.replace("top=$('.gk2-topbar'),scopeSummary=$('#gk2-topbar-scope-summary');",

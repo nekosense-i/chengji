@@ -9,21 +9,6 @@ body.gk2-app.gk2-bi .gk2-sidebar .nav-menu > .nav-item > .gk2-icon {
     height: 23px !important;
     transform: none !important;
 }
-.gk2-navigation .gk2-test-capsule {
-    display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px;
-    box-sizing: border-box; height: 34px; padding: 0 4px 0 8px; border-radius: 999px;
-    background: #fff1d0; border: 1px solid #ead3a2; color: #734600; font-size: 12px; white-space: nowrap;
-    margin: 0;
-}
-.gk2-test-capsule strong::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: 2px; background: #ad6c08; }
-.gk2-navigation .gk2-test-capsule button {
-    min-height: 24px; padding: 0 6px; border: 0; border-radius: 999px;
-    background: #fff8eb; color: inherit; font: inherit; box-shadow: none;
-}
-.gk2-test-capsule button:hover { background: #f4dbac; }
-@media (max-width: 1359px) {
-    body[data-gk2-page="details"] .gk2-test-capsule strong span { display: none; }
-}
 .gk2-navigation .gk2-topbar #gk2-header-context,
 .gk2-navigation .gk2-topbar #gk2-header-assistant-actions { margin-left: 0 !important; flex: 0 0 auto !important; }
 .gk2-navigation .gk2-topbar-capsule-slot { min-width: 0 !important; flex: 0 1 auto !important; }
@@ -38,7 +23,7 @@ body.gk2-app.gk2-bi .gk2-sidebar .nav-menu > .nav-item > .gk2-icon {
 }
 .gk2-navigation .gk2-topbar .gk2-roster-heading { display: none; }
 body.gk2-navigation[data-gk2-page="students"] #gk2-topbar-capsule-slot { display: flex !important; }
-body.gk2-navigation[data-gk2-page="students"] .gk2-topbar .gk2-roster-heading { display: flex; order: 0; margin: 0; flex: none; }
+body.gk2-navigation[data-gk2-page="students"] .gk2-topbar .gk2-roster-heading[data-view="teachers"] { display: flex; order: 0; margin: 0; flex: none; }
 body.gk2-navigation[data-gk2-page="students"] #gk2-topbar-scope-summary,
 body.gk2-navigation[data-gk2-page="students"] #gk2-roster-import[hidden],
 #gk2-teacher-roster-commands[hidden] { display: none !important; }
@@ -60,8 +45,7 @@ body[data-gk2-page="students"] #gk2-bi-scope-toggle[data-roster-filter-active]::
     height: 36px !important; min-height: 36px !important; border-radius: 999px !important;
     padding: 0 10px !important; font-size: 12px; white-space: nowrap;
 }
-.gk2-navigation .gk2-topbar :is(#gk2-roster-add,[data-teacher-add]) { background: var(--primary,#655bd3) !important; border: 1px solid var(--primary,#655bd3) !important; color: #fff !important; }
-.gk2-navigation .gk2-topbar #gk2-roster-import { background: #fff !important; color: #3e4c64 !important; border: 1px solid var(--border,#dbe2eb) !important; }
+.gk2-navigation .gk2-topbar [data-teacher-add] { background: var(--primary,#655bd3) !important; border: 1px solid var(--primary,#655bd3) !important; color: #fff !important; }
 #view-students .gk2-roster-group-label { display: inline-flex; align-items: center; gap: 5px; }
 #view-students .tree-table-wrapper :is(th,td):first-child {
     display: table-cell !important; position: static !important; width: 36px !important; min-width: 36px !important;
@@ -101,7 +85,7 @@ body[data-gk2-page="students"] #gk2-bi-scope-toggle[data-roster-filter-active]::
 }
 .gk2-navigation .gk2-topbar-left { flex: 0 1 auto; }
 .gk2-navigation .gk2-topbar-right { flex: 0 0 auto; margin-inline-start: auto; }
-.gk2-navigation .gk2-topbar :is(#gk2-header-context,#gk2-header-assistant-actions,#gk2-entry-quick-actions,#gk2-roster-quick-actions,.gk2-roster-heading,#gk2-student-roster-commands) {
+.gk2-navigation .gk2-topbar :is(#gk2-header-context,#gk2-header-assistant-actions,#gk2-entry-quick-actions,#gk2-roster-quick-actions,.gk2-roster-heading) {
     gap: var(--gk2-header-gap) !important;
     margin-inline: 0 !important;
 }
@@ -110,7 +94,7 @@ body[data-gk2-page="students"] #gk2-bi-scope-toggle[data-roster-filter-active]::
     order: 0 !important;
     margin-inline: 0 !important;
 }
-.gk2-navigation.gk2-comfort .gk2-topbar :is(.gk2-current-exam-trigger,#gk2-topbar-scope-summary,.gk2-test-capsule) {
+.gk2-navigation.gk2-comfort .gk2-topbar :is(.gk2-current-exam-trigger,#gk2-topbar-scope-summary) {
     box-sizing: border-box;
     height: 36px !important;
     min-height: 36px !important;
@@ -131,3 +115,33 @@ body[data-gk2-page="students"] #gk2-bi-scope-toggle[data-roster-filter-active]::
     width: 36px !important; min-width: 36px !important; max-width: 36px !important;
     height: 36px !important; min-height: 36px !important; max-height: 36px !important;
 }
+
+
+.gk2-navigation:is([data-gk2-page="details"],[data-gk2-page="analysis"]) .gk2-topbar-capsule-slot::after { content: none; }
+.gk2-navigation.gk2-comfort .gk2-topbar :is(#gk2-details-capsule-tabs,#analysis-tabs-container,.gk2-roster-switch) {
+    box-sizing: border-box;
+    background: #f1f6fc !important;
+    border: 1px solid #c3d9f3 !important;
+    box-shadow: none !important;
+}
+.gk2-navigation.gk2-comfort .gk2-topbar :is(#gk2-details-capsule-tabs,#analysis-tabs-container) { border: 0 !important; box-shadow: inset 0 0 0 1px #c3d9f3 !important; }
+.gk2-navigation .gk2-topbar .gk2-roster-switch :is(.analysis-tab,.analysis-tab[aria-pressed=true]) {
+    border-radius: 999px !important;
+    margin: 0 !important;
+    line-height: 1;
+}
+.gk2-navigation .gk2-topbar .gk2-roster-switch { padding: 3px !important; }
+.gk2-navigation #gk2-header-assistant-actions > #gk2-roster-import:not([hidden]) {
+    flex: 0 0 36px !important; width: 36px !important; min-width: 36px !important; max-width: 36px !important;
+    height: 36px !important; min-height: 36px !important;
+    border-radius: 50% !important; background: #e9f2ff !important; border-color: #c9defa !important; color: #3365a9 !important;
+}
+.gk2-navigation #gk2-header-assistant-actions > #gk2-roster-import:hover:not([hidden]) { background: #dceaff !important; }
+.gk2-app .sidebar-bottom > button.gk2-sidebar-test-mode {
+    display: grid !important; place-items: center; box-sizing: border-box;
+    margin-inline: auto; padding: 0; width: 36px; height: 36px; min-height: 36px;
+    border-radius: 50%; border: 1px solid #ebd19f; background: #fff1d0; color: #805313;
+}
+.gk2-app .sidebar-bottom > button.gk2-sidebar-test-mode:hover { background: #f7e4bb; }
+.gk2-sidebar-test-mode svg { width: 19px; height: 19px; }
+.gk2-navigation #gk2-header-assistant-actions > #gk2-workspace-export { order: 2 !important; }

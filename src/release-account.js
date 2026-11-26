@@ -122,7 +122,8 @@ window.gk2DismissibleDialog = function (dialog, label) {
             studentPanel.hidden = teachers;
             rosterCommands.dataset.view = teachers ? 'teachers' : 'students';
             document.getElementById('gk2-teacher-roster-commands').hidden = !teachers;
-            document.getElementById('gk2-student-roster-commands').hidden = teachers;
+            const rosterAction = document.getElementById('gk2-roster-import');
+            rosterAction.hidden = teachers || window.gk2.page !== 'students';
             if (teachers) window.gk2Comfort?.closeLibrary();
             if (teachers) {
                 window.gk2Navigation?.closeRosterSearch?.();
@@ -205,11 +206,14 @@ window.gk2DismissibleDialog = function (dialog, label) {
         if (testing) {
             document.title = '测试模式 · ' + document.title;
             document.getElementById('cloud-sync-toggle').disabled = true;
-            const banner = document.createElement('div');
-            banner.className = 'gk2-test-capsule';
-            banner.innerHTML = '<strong>测试<span>模式</span></strong><button type="button" aria-label="返回正式模式">退出</button>';
-            banner.querySelector('button').onclick = switchMode;
-            left.append(banner);
+            const indicator = document.createElement('button');
+            indicator.type = 'button';
+            indicator.className = 'gk2-sidebar-test-mode';
+            indicator.title = '测试模式 · 点击退出';
+            indicator.setAttribute('aria-label', '退出测试模式');
+            indicator.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6m-5 0v7l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3M8 15h8"/></svg>';
+            indicator.onclick = () => window.app.ui.showConfirmDialog('退出测试模式并返回正式模式？测试修改将保留在本机。', switchMode, '退出测试模式');
+            document.querySelector('.sidebar-bottom [aria-label="系统设置"]').before(indicator);
         }
     });
 })();
