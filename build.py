@@ -184,6 +184,13 @@ def build(destination):
                             return;
                         }
                         if (this._rosterImporting) return;''', 1)
+    class_filter = "                    this._decorateSidebarFilterFeedback();"
+    if core.count(class_filter) != 1:
+        raise RuntimeError('Teacher class filter anchor changed')
+    core = core.replace(class_filter, class_filter + '''
+                    if (auth?.sharedDirectory) {
+                        window.gk2TeacherAccounts.renderClasses(document.getElementById('sb-cls-panel'),auth,true);
+                    }''',1)
     anchor = '            return { Store, Sync, UI };'
     if core.count(anchor) != 1:
         raise RuntimeError('Production AppCore anchor changed')

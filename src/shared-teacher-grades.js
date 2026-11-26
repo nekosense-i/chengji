@@ -48,6 +48,20 @@
         const fingerprint = JSON.stringify(data.scores);
         const changes = before ? edits(before,data.scores) : [];
         try {
+            const current = await window.gk2TeacherAccounts.restoreSharedSession(auth);
+            if (!current) {
+                window.__gakutenAuth.clearAuth();
+                location.reload();
+                return;
+            }
+            if (current.campus !== auth.campus || current.grade !== auth.grade || current.classId !== auth.classId) {
+                store.writeLocalState();
+                window.__gakutenAuth.saveAuth(current);
+                location.reload();
+                return;
+            }
+            window.__gakutenAuth.saveAuth(current);
+            if (current.version !== auth.version) ui.initGlobalFilters();
             const operationId = changes.length ? crypto.randomUUID() : null;
             const response = await window.gk2TeacherAccounts.gradeRequest({
                 cache:'no-store',signal:AbortSignal.timeout(12000),

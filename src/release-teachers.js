@@ -145,7 +145,7 @@
             })().finally(() => { sessionRead = null; });
             return sessionRead;
         },
-        renderClasses(container, identity) {
+        renderClasses(container, identity, showSingle = false) {
             container.replaceChildren();
             const teacher = identity.teacherId && currentTeacher(identity);
             if (!teacher) return;
@@ -157,7 +157,7 @@
                     select.add(new Option(classes.get(scope) || JSON.parse(scope).join(' · '), scope));
                 }
             }
-            if (select.options.length < 2) return;
+            if (select.options.length < (showSingle ? 1 : 2)) return;
             select.value = classKey(identity.campus, identity.grade, identity.classId);
             select.onchange = () => {
                 const latest = currentTeacher(identity);
