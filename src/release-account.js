@@ -97,6 +97,7 @@ window.gk2DismissibleDialog = function (dialog, label) {
             button.onclick = switchMode;
         }
         const rosterSwitch = document.querySelector('.gk2-roster-switch');
+        document.getElementById('gk2-topbar-scope-summary').after(rosterSwitch);
         const teacherPanel = document.getElementById('gk2-teacher-panel');
         const studentPanel = document.getElementById('tree-container-students');
         function selectRoster(section) {

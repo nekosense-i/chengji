@@ -57,17 +57,48 @@
 #gk2-teacher-panel fieldset label { display: flex; align-items: baseline; gap: 8px; }
 .gk2-teacher-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; }
 .gk2-app .sidebar-bottom > .gk2-avatar-label:not([hidden]) { display: grid !important; }
-.gk2-roster-switch {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 4px 0 12px;
+body:not([data-gk2-page="students"]) .gk2-topbar .gk2-roster-switch { display: none !important; }
+.gk2-navigation .gk2-topbar .gk2-roster-switch {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    box-sizing: border-box;
+    gap: 2px;
+    height: 40px;
+    padding: 3px;
+    border: 1px solid #c3d9f3;
+    border-radius: 999px;
+    background: #f1f6fc;
 }
-.gk2-roster-switch .secondary[aria-pressed="true"] {
-    background: #f4e3cd;
-    border-color: #d3a366;
-    color: #71380c;
+.gk2-navigation .gk2-topbar:has(.gk2-roster-switch:not([hidden])) #gk2-topbar-scope-summary {
+    margin-inline-end: 0;
+}
+.gk2-navigation .gk2-topbar .gk2-roster-switch .secondary {
+    height: 32px;
+    min-height: 32px;
+    margin: 0;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: none;
+    color: #48546a;
+    font-size: 13px;
+    white-space: nowrap;
+}
+.gk2-navigation .gk2-topbar .gk2-roster-switch .secondary[aria-pressed="true"] {
+    background: #fff;
+    color: #26364f;
     font-weight: 650;
+    box-shadow: 0 1px 4px #2c487021;
+}
+.gk2-navigation .gk2-topbar .gk2-roster-switch .secondary[aria-pressed="false"]:hover { background: #ffffffa6; }
+@media (max-width: 700px) {
+    body.gk2-navigation[data-gk2-page="students"] .gk2-topbar:has(.gk2-roster-switch:not([hidden])) {
+        flex-wrap: wrap !important;
+        height: auto;
+    }
+    .gk2-navigation .gk2-topbar .gk2-roster-switch { order: 4; }
 }
 .gk2-roster-switch[hidden], #gk2-teacher-panel[hidden], #tree-container-students[hidden],
 body:has(#view-students.active #gk2-teacher-panel:not([hidden])) #gk2-roster-quick-actions {
