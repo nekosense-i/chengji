@@ -57,6 +57,7 @@
         const password = document.createElement('input');
         password.type = 'password';
         password.autocomplete = 'current-password';
+        password.placeholder = '输入 Gakupo 管理员口令';
         password.setAttribute('aria-label', 'Gakupo 管理员口令');
         list.insertBefore(password, button);
         button.textContent = '连接云端';
@@ -196,6 +197,7 @@
             let directory;
             const add = find('[data-teacher-add]');
             if (useSharedDirectory()) {
+                find('[data-teacher-storage-note]').textContent = '账号与班级授权由 Gakuten 和 Gakupo 共用，连接后从云端加载。';
                 add.disabled = true;
                 add.onclick = null;
                 editor.hidden = true;
