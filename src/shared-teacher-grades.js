@@ -49,7 +49,7 @@
         const changes = before ? edits(before,data.scores) : [];
         try {
             const operationId = changes.length ? crypto.randomUUID() : null;
-            const response = await fetch('/gakuten-teacher-grades', {
+            const response = await window.gk2TeacherAccounts.gradeRequest({
                 cache:'no-store',signal:AbortSignal.timeout(12000),
                 ...(operationId ? {method:'POST',headers:{'Content-Type':'application/json'},
                     body:JSON.stringify({operationId,changes})} : {})

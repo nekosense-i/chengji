@@ -17,7 +17,7 @@ html.gk2-starting #gk2-startup{position:fixed;inset:0;z-index:2147483647;display
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src https://sync.nekosensei.cn https: http://127.0.0.1:* http://localhost:*; frame-src 'none'; worker-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'">
-<script src="assets/app/environment.1110b7150b639869.js"></script>
+<script src="assets/app/environment.36378efc2b570ab7.js"></script>
 <title>nekosensei成绩分析系统</title>
     <meta name="description" content="面向日语教学的成绩分析工具，支持成绩录入、统计对比与学生成长档案。">
     <meta property="og:title" content="nekosensei成绩分析系统">
@@ -85,7 +85,7 @@ window.gk2IconMarkup = function(name) {
 </script>
     <script defer src="assets/echarts.min.js"></script>
     <script src="assets/lz-string.min.js"></script>
-    <script src="assets/app/foundation.bddd1cb059a9b650.js"></script>
+    <script src="assets/app/foundation.6d308fb7d783ef86.js"></script>
     <link rel="stylesheet" href="assets/app/styles.7e394db6d738fdc1.css">
     
     
@@ -105,7 +105,7 @@ window.gk2IconMarkup = function(name) {
             <div class="auth-row">
                 <input id="auth-teacher-id" class="auth-input" aria-label="教师 ID" placeholder="教师 ID" autocomplete="username" autocapitalize="none" spellcheck="false" hidden>
                 <div class="auth-password-wrap">
-                    <input id="auth-password" class="auth-input" type="password" placeholder="请输入登录口令" autocomplete="current-password">
+                    <input id="auth-password" class="auth-input" type="password" placeholder="请输入管理员密码" autocomplete="current-password">
                     <button class="auth-eye-btn" type="button" aria-label="显示密码" onclick="window.__gakutenTogglePassword && window.__gakutenTogglePassword()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
@@ -113,7 +113,7 @@ window.gk2IconMarkup = function(name) {
                 <button class="auth-btn is-loading" type="button" disabled onclick="window.__gakutenLogin && window.__gakutenLogin()"><span class="auth-btn-text">正在准备...</span></button>
                 <div id="auth-error" class="auth-error">口令错误，请检查后重试。</div>
             </div>
-            <div class="auth-footnote"><span id="auth-current-entry">管理员或原班级口令登录</span> · <button type="button" id="auth-switch-entry">教师 ID 登录</button></div>
+            <div class="auth-footnote"><span id="auth-current-entry">管理员密码登录</span> · <button type="button" id="auth-switch-entry">教师 ID 登录</button></div>
         </div>
     </div>
 
@@ -826,8 +826,8 @@ window.gk2IconMarkup = function(name) {
         </div>
     </dialog>
 
-    <script src="assets/app/core.846ddff11048d39b.js"></script>
-<script src="assets/app/features.887e7dd439bafa43.js"></script>
+    <script src="assets/app/core.6094f503b5490716.js"></script>
+<script src="assets/app/features.7e06ac28b39105c2.js"></script>
 <script type="application/gakuten-lazy" data-gk2-lazy-js="migration" data-src="assets/app/migration.a544b6186a27763f.js"></script>
 <script type="application/gakuten-lazy" data-gk2-lazy-js="comparison" data-src="assets/app/comparison.8e2ccef9969a3647.js"></script>
 </body>
