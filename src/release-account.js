@@ -97,22 +97,6 @@ window.gk2DismissibleDialog = function (dialog, label) {
             button.onclick = switchMode;
         }
         const rosterSwitch = document.querySelector('.gk2-roster-switch');
-        const topbar = document.querySelector('.gk2-topbar');
-        const left = document.createElement('div');
-        left.className = 'gk2-topbar-left';
-        const right = document.createElement('div');
-        right.className = 'gk2-topbar-right';
-        const rosterCommands = document.querySelector('.gk2-roster-heading');
-        left.append(...topbar.querySelectorAll(':scope > :is(.gk2-current-exam-wrap,#gk2-topbar-scope-summary,#gk2-topbar-capsule-slot)'), rosterCommands);
-        right.append(document.getElementById('gk2-header-context'), document.getElementById('gk2-header-assistant-actions'));
-        topbar.append(left, right);
-        const scopeButton = document.getElementById('gk2-bi-scope-toggle');
-        function updateRosterScope() {
-            const focus = window.app.store.state.globalFocus;
-            scopeButton.toggleAttribute('data-roster-filter-active', Object.values(focus).some(values => Array.isArray(values) && values.length));
-        }
-        window.gk2.shellEffects.push(updateRosterScope);
-        updateRosterScope();
         const teacherPanel = document.getElementById('gk2-teacher-panel');
         const studentPanel = document.getElementById('tree-container-students');
         function selectRoster(section) {
@@ -120,11 +104,6 @@ window.gk2DismissibleDialog = function (dialog, label) {
             if (teachers && teacherPanel.hidden) window.gk2TeacherAccounts.render();
             teacherPanel.hidden = !teachers;
             studentPanel.hidden = teachers;
-            rosterCommands.dataset.view = teachers ? 'teachers' : 'students';
-            document.getElementById('gk2-teacher-roster-commands').hidden = !teachers;
-            const rosterAction = document.getElementById('gk2-roster-import');
-            rosterAction.hidden = teachers || window.gk2.page !== 'students';
-            if (teachers) window.gk2Comfort?.closeLibrary();
             if (teachers) {
                 window.gk2Navigation?.closeRosterSearch?.();
                 window.gk2Navigation?.closeRosterImportPopover?.();
@@ -136,6 +115,11 @@ window.gk2DismissibleDialog = function (dialog, label) {
         for (const button of rosterSwitch.querySelectorAll('button')) {
             button.onclick = () => selectRoster(button.dataset.rosterSection);
         }
+        teacherPanel.querySelector('[data-teacher-cancel]').onclick = () => {
+            teacherPanel.querySelector('form').hidden = true;
+            teacherPanel.querySelector('form').reset();
+            teacherPanel.querySelector('[data-teacher-add]').focus();
+        };
         dialog.querySelector('[data-account-teachers]').onclick = () => {
             dialog.close();
             window.gk2.navigate('students');
@@ -190,7 +174,7 @@ window.gk2DismissibleDialog = function (dialog, label) {
             const identity = auth();
             const admin = identity?.mode === 'admin';
             settings.hidden = !testing && !admin;
-            rosterSwitch.hidden = !admin || window.gk2.page !== 'students';
+            rosterSwitch.hidden = !admin;
             if (!admin) selectRoster('students');
             name.textContent = identity ? identity.name || (admin ? '管理员' : '任课教师') : '';
             avatarLabel.title = admin ? '教务管理员 · 全部教学范围' : name.textContent;
@@ -206,14 +190,11 @@ window.gk2DismissibleDialog = function (dialog, label) {
         if (testing) {
             document.title = '测试模式 · ' + document.title;
             document.getElementById('cloud-sync-toggle').disabled = true;
-            const indicator = document.createElement('button');
-            indicator.type = 'button';
-            indicator.className = 'gk2-sidebar-test-mode';
-            indicator.title = '测试模式 · 点击退出';
-            indicator.setAttribute('aria-label', '退出测试模式');
-            indicator.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6m-5 0v7l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3M8 15h8"/></svg>';
-            indicator.onclick = () => window.app.ui.showConfirmDialog('退出测试模式并返回正式模式？测试修改将保留在本机。', switchMode, '退出测试模式');
-            document.querySelector('.sidebar-bottom [aria-label="系统设置"]').before(indicator);
+            const banner = document.createElement('div');
+            banner.className = 'gk2-test-banner';
+            banner.innerHTML = '<strong>测试模式 · 虚拟数据</strong><button type="button" class="secondary">返回正式模式</button>';
+            banner.querySelector('button').onclick = switchMode;
+            document.body.append(banner);
         }
     });
 })();

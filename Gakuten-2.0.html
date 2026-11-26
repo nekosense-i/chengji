@@ -85,8 +85,8 @@ window.gk2IconMarkup = function(name) {
 </script>
     <script defer src="assets/echarts.min.js"></script>
     <script src="assets/lz-string.min.js"></script>
-    <script src="assets/app/foundation.0cda4385f78ddacc.js"></script>
-    <link rel="stylesheet" href="assets/app/styles.ae59289e1d39523b.css">
+    <script src="assets/app/foundation.f0ab61b4c7859f18.js"></script>
+    <link rel="stylesheet" href="assets/app/styles.b43a4ec0e3a3f22a.css">
     
     
 
@@ -289,45 +289,30 @@ window.gk2IconMarkup = function(name) {
                     <input type="file" id="file-import" class="is-hidden" accept=".xlsx, .xls" onchange="window.app.ui.handleImport(event)">
                 </div>
             </div>
-            <div class="gk2-roster-heading">
-                <div class="gk2-roster-switch" role="group" aria-label="名单类型" hidden>
-                    <button type="button" class="analysis-tab" data-roster-section="students" aria-pressed="true">学生名单</button>
-                    <button type="button" class="analysis-tab" data-roster-section="teachers" aria-pressed="false">教师与班级授权</button>
-                </div>
-                <div id="gk2-teacher-roster-commands" hidden><button type="button" class="gk2-roster-primary" data-teacher-add>+ 添加教师</button></div>
+            <div class="gk2-roster-switch" role="group" aria-label="名单类型" hidden>
+                <button type="button" class="secondary" data-roster-section="students" aria-pressed="true">学生名单</button>
+                <button type="button" class="secondary" data-roster-section="teachers" aria-pressed="false">教师与班级授权</button>
             </div>
             <div class="content-body" id="tree-container-students"></div>
             <section id="gk2-teacher-panel" class="content-body" aria-label="教师与班级授权" hidden>
-                <div class="gk2-teacher-card">
-                    <header class="gk2-teacher-card-header"><h2>教师账号</h2><span class="gk2-teacher-local" title="账号与授权保存在当前浏览器">本机账号</span></header>
-                    <div class="gk2-teacher-toolbar">
-                        <input type="search" data-teacher-search placeholder="搜索姓名、教师 ID 或教学班" aria-label="查找教师">
+                <div class="gk2-teacher-toolbar">
+                    <input type="search" data-teacher-search placeholder="姓名、教师 ID 或教学班" aria-label="查找教师">
+                    <button type="button" class="secondary btn--soft-primary" data-teacher-add>添加教师</button>
+                </div>
+                <p class="dialog-note">账号与授权保存在当前浏览器。</p>
+                <div data-teacher-list aria-live="polite"></div>
+                <form hidden>
+                    <label>教师姓名<input name="teacherName" maxlength="80" required></label>
+                    <label>教师 ID<input name="loginId" maxlength="80" required autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+                    <label><span data-password-label>初始登录凭证</span><input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password"></label>
+                    <label><input name="active" type="checkbox"> 启用账号</label>
+                    <fieldset data-teacher-classes></fieldset>
+                    <p role="alert"></p>
+                    <div class="gk2-sync-actions">
+                        <button type="submit" class="primary">保存教师</button>
+                        <button type="button" class="secondary" data-teacher-cancel>取消编辑</button>
                     </div>
-                    <div data-teacher-list aria-live="polite"></div>
-                </div>
-                <div class="gk2-teacher-card">
-                    <header class="gk2-teacher-card-header"><h2 data-teacher-editor-title>教师资料与授权</h2></header>
-                    <p data-teacher-editor-empty>选择一位教师查看或调整授权，或添加新的教师账号。</p>
-                    <form hidden>
-                        <label><span>教师姓名 <i>*</i></span><input name="teacherName" maxlength="80" placeholder="请输入教师姓名" required></label>
-                        <label><span>教师 ID <i>*</i></span><input name="loginId" maxlength="80" placeholder="如 T001 或拼音账号" required autocomplete="off" autocapitalize="none" spellcheck="false"></label>
-                        <div class="gk2-teacher-password">
-                            <div class="gk2-teacher-password-label"><label for="teacher-credential"><span data-password-label>初始登录凭证</span> <i data-password-required>*</i></label><button type="button" data-teacher-password-generate>随机生成</button></div>
-                            <div><input id="teacher-credential" name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="请设置首次登录凭证">
-                            <button type="button" class="secondary" data-teacher-password-toggle aria-label="显示凭证">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>
-                            </button></div>
-                        </div>
-                        <label class="gk2-teacher-active"><span>启用账号</span><input name="active" type="checkbox" role="switch" class="gk2-setting-switch"></label>
-                        <div class="gk2-teacher-class-header"><strong id="gk2-teacher-class-label">负责教学班</strong><small data-teacher-class-count></small><button type="button" data-teacher-class-set="all">全选</button><button type="button" data-teacher-class-set="none">清空</button></div>
-                        <div data-teacher-classes role="group" aria-labelledby="gk2-teacher-class-label"></div>
-                        <p role="alert"></p>
-                        <div class="gk2-teacher-form-actions">
-                            <button type="button" class="secondary" data-teacher-cancel>取消编辑</button>
-                            <button type="submit" class="gk2-roster-primary">保存教师</button>
-                        </div>
-                    </form>
-                </div>
+                </form>
             </section>
         </section>
 
@@ -813,8 +798,8 @@ window.gk2IconMarkup = function(name) {
         </div>
     </dialog>
 
-    <script src="assets/app/core.080e284752cb492c.js"></script>
-<script src="assets/app/features.02406b5de4a3ecc8.js"></script>
+    <script src="assets/app/core.722e40309ad56aa1.js"></script>
+<script src="assets/app/features.68c6c2afc0c323f6.js"></script>
 <script type="application/gakuten-lazy" data-gk2-lazy-js="migration" data-src="assets/app/migration.a544b6186a27763f.js"></script>
 <script type="application/gakuten-lazy" data-gk2-lazy-js="comparison" data-src="assets/app/comparison.8e2ccef9969a3647.js"></script>
 </body>
