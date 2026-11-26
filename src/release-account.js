@@ -98,6 +98,10 @@ window.gk2DismissibleDialog = function (dialog, label) {
         }
         const rosterSwitch = document.querySelector('.gk2-roster-switch');
         document.getElementById('gk2-topbar-scope-summary').after(rosterSwitch);
+        const syncRosterGlider = (immediate = false) => window.syncCapsuleGlider?.(rosterSwitch, immediate);
+        window.gk2.shellEffects.push(() => syncRosterGlider(true));
+        window.addEventListener('resize', () => syncRosterGlider(true), { passive: true });
+        document.fonts?.ready.then(() => syncRosterGlider(true));
         const teacherPanel = document.getElementById('gk2-teacher-panel');
         const studentPanel = document.getElementById('tree-container-students');
         function selectRoster(section) {
@@ -110,8 +114,10 @@ window.gk2DismissibleDialog = function (dialog, label) {
                 window.gk2Navigation?.closeRosterImportPopover?.();
             }
             for (const button of rosterSwitch.querySelectorAll('button')) {
-                button.setAttribute('aria-pressed', String(button.dataset.rosterSection === (teachers ? 'teachers' : 'students')));
+                const active = button.dataset.rosterSection === (teachers ? 'teachers' : 'students');
+                button.setAttribute('aria-pressed', String(active));
             }
+            syncRosterGlider();
         }
         for (const button of rosterSwitch.querySelectorAll('button')) {
             button.onclick = () => selectRoster(button.dataset.rosterSection);
@@ -177,6 +183,7 @@ window.gk2DismissibleDialog = function (dialog, label) {
             settings.hidden = !testing && !admin;
             rosterSwitch.hidden = !admin;
             if (!admin) selectRoster('students');
+            else syncRosterGlider(true);
             name.textContent = identity ? identity.name || (admin ? '管理员' : '任课教师') : '';
             avatarLabel.title = admin ? '教务管理员 · 全部教学范围' : name.textContent;
             role.textContent = admin ? '管理模式' : '';

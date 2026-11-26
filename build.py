@@ -287,6 +287,8 @@ def build(destination):
     features = features.replace("lamp.setAttribute('aria-label','数据保存与同步状态')", "lamp.setAttribute('aria-label','账号与云同步')")
     features = features.replace("tooltip.textContent=text;", "tooltip.textContent=window.gk2ReleaseTest ? '测试模式 · 仅保存到本机' : text;", 1)
     features = features.replace("$('.sidebar-logout-link').addEventListener", "$('.sidebar-logout-link')?.addEventListener", 1)
+    features = features.replace("const active = container.querySelector('.analysis-tab.active');",
+                                """const active = container.querySelector(container.matches('.gk2-roster-switch') ? '[aria-pressed="true"]' : '.analysis-tab.active');""", 1)
     sync_start = features.index('window.gk2OpenSyncStatus=function(){')
     sync_end = features.index("window.addEventListener('load',()=>{", sync_start)
     features = features[:sync_start] + (ROOT / 'src/release-sync-dialog.js').read_text() + '\n' + features[sync_end:]

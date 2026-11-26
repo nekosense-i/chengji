@@ -59,6 +59,8 @@
 .gk2-app .sidebar-bottom > .gk2-avatar-label:not([hidden]) { display: grid !important; }
 body:not([data-gk2-page="students"]) .gk2-topbar .gk2-roster-switch { display: none !important; }
 .gk2-navigation .gk2-topbar .gk2-roster-switch {
+    position: relative;
+    isolation: isolate;
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
@@ -74,6 +76,8 @@ body:not([data-gk2-page="students"]) .gk2-topbar .gk2-roster-switch { display: n
     margin-inline-end: 0;
 }
 .gk2-navigation .gk2-topbar .gk2-roster-switch .secondary {
+    position: relative;
+    z-index: 1;
     box-sizing: border-box;
     height: 32px !important;
     min-height: 32px !important;
@@ -94,6 +98,29 @@ body:not([data-gk2-page="students"]) .gk2-topbar .gk2-roster-switch { display: n
     box-shadow: 0 1px 4px #2c487021;
 }
 .gk2-navigation .gk2-topbar .gk2-roster-switch .secondary[aria-pressed="false"]:hover { background: #ffffffa6; }
+.gk2-navigation .gk2-topbar .gk2-roster-switch:has(.gk2-capsule-glider.is-ready) .secondary[aria-pressed="true"] {
+    background: transparent;
+    box-shadow: none;
+}
+.gk2-roster-switch > .gk2-capsule-glider {
+    position: absolute;
+    inset: 3px auto 3px 0;
+    display: none;
+    pointer-events: none;
+    transition: transform 240ms cubic-bezier(.22, 1, .36, 1), width 240ms cubic-bezier(.22, 1, .36, 1);
+}
+.gk2-roster-switch > .gk2-capsule-glider.is-ready { display: block; }
+.gk2-roster-switch .gk2-glider-pill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 4px #2c487021;
+}
+@media (prefers-reduced-motion: reduce) {
+    .gk2-roster-switch > .gk2-capsule-glider { transition: none; }
+}
 @media (max-width: 700px) {
     body.gk2-navigation[data-gk2-page="students"] .gk2-topbar:has(.gk2-roster-switch:not([hidden])) {
         flex-wrap: wrap !important;
