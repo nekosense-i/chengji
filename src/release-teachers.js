@@ -1,6 +1,72 @@
 (() => {
     const key = 'gk2_teacher_accounts_v1';
     let feedbackTimer;
+    function useSharedDirectory() {
+        return location.hostname === 'chengji.nekosensei.cn' && !window.gk2ReleaseTest;
+    }
+    async function directoryRequest(route, body) {
+        const response = await fetch('/gakupo-directory/' + route, body ? {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        } : {});
+        const result = await response.json();
+        if (!response.ok) throw Object.assign(Error(result.error || '无法读取云端教师目录。'), { status: response.status });
+        return result;
+    }
+    async function loadDirectory() {
+        const { classes } = await directoryRequest('roster');
+        const scopes = new Map(Object.entries(classes).map(([id, { info }]) =>
+            [id, classKey(info.campus, info.grade, info.teachingClass)]));
+        const { teachers } = await directoryRequest('teachers');
+        return {
+            scopes,
+            accounts: teachers.map(teacher => ({
+                ...teacher, classes: teacher.classIds.map(id => scopes.get(id)).filter(Boolean)
+            }))
+        };
+    }
+    function showDirectoryLogin(workspace, retry, error) {
+        const list = workspace.querySelector('[data-teacher-list]');
+        const empty = workspace.querySelector('[data-teacher-editor-empty]');
+        workspace.querySelector('form').hidden = true;
+        empty.hidden = false;
+        list.replaceChildren();
+        const status = document.createElement('p');
+        status.textContent = error.status === 401 || error.status === 403
+            ? '请使用 Gakupo 管理员口令，管理两边共用的教师账号。'
+            : '云端教师目录暂时不可用，请重试。';
+        list.append(status);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = '重试';
+        list.append(button);
+        if (error.status !== 401 && error.status !== 403) {
+            button.onclick = retry;
+            return;
+        }
+        const password = document.createElement('input');
+        password.type = 'password';
+        password.autocomplete = 'current-password';
+        password.setAttribute('aria-label', 'Gakupo 管理员口令');
+        list.insertBefore(password, button);
+        button.textContent = '连接云端';
+        const connect = async () => {
+            if (!password.value || button.disabled) return;
+            button.disabled = true;
+            try {
+                await directoryRequest('session', { role: 'admin', loginId: 'nekosensei', password: password.value });
+                password.value = '';
+                retry();
+            } catch (failure) {
+                status.textContent = failure.message;
+            } finally {
+                button.disabled = false;
+            }
+        };
+        button.onclick = connect;
+        password.onkeydown = event => { if (event.key === 'Enter') connect(); };
+    }
     const read = () => JSON.parse(localStorage.getItem(key) || '[]');
     const normalize = value => value.trim().toLowerCase();
     const classKey = (campus, grade, classId) => JSON.stringify([campus, grade, classId]);
@@ -24,6 +90,10 @@
         return options;
     }
     window.gk2TeacherAccounts = {
+        async disconnectDirectory() {
+            if (!useSharedDirectory()) return;
+            await fetch('/gakupo-directory/session', { method: 'DELETE' });
+        },
         validateSession(identity) {
             if (!identity.teacherId) return identity;
             const teacher = currentTeacher(identity);
@@ -58,7 +128,7 @@
             };
             container.append(select);
         },
-        render() {
+        async render() {
             if (window.__gakutenAuth.getAuth()?.mode !== 'admin') return;
             const workspace = document.getElementById('gk2-teacher-panel');
             const find = selector => workspace.querySelector(selector);
@@ -71,7 +141,25 @@
             const clearSearch = find('[data-teacher-search-clear]');
             const classPicker = find('[data-teacher-classes]');
             const classCount = find('[data-teacher-class-count]');
-            const options = availableClasses();
+            let directory;
+            const add = find('[data-teacher-add]');
+            if (useSharedDirectory()) {
+                add.disabled = true;
+                add.onclick = null;
+                editor.hidden = true;
+                try {
+                    directory = await loadDirectory();
+                } catch (error) {
+                    showDirectoryLogin(workspace, () => window.gk2TeacherAccounts.render(), error);
+                    return;
+                }
+                if (window.__gakutenAuth.getAuth()?.mode !== 'admin') return;
+            }
+            add.disabled = false;
+            const options = directory
+                ? new Map([...directory.scopes.values()].map(scope => [scope, JSON.parse(scope).join(' · ')]))
+                : availableClasses();
+            const readAccounts = () => directory?.accounts ?? read();
             const feedback = find('[data-teacher-feedback]');
             let selectedId = null;
 
@@ -106,7 +194,7 @@
                 badge.textContent = active ? '已启用' : '已停用';
             }
             function render() {
-                const accounts = read();
+                const accounts = readAccounts();
                 const query = normalize(search.value);
                 find('[data-teacher-total]').textContent = accounts.length + ' 位';
                 clearSearch.hidden = !search.value;
@@ -217,19 +305,31 @@
                 if (!scopes.size) classPicker.textContent = '请先在学生名单中添加教学班。';
                 updateCount();
                 const save = editor.querySelector('[type="submit"]');
-                editor.onsubmit = event => {
+                editor.onsubmit = async event => {
                     event.preventDefault();
                     const fields = new FormData(editor);
                     const name = fields.get('teacherName').trim(), loginId = normalize(fields.get('loginId'));
                     const classes = fields.getAll('scope');
-                    if (!name || !loginId || /\s/.test(loginId) || !classes.length) {
+                    if (!name || !loginId || /\s/.test(loginId) || (!directory && !classes.length)) {
                         showFeedback('请填写教师姓名、无空格的 ID，并至少选择一个教学班。');
                         return;
                     }
                     save.disabled = true;
                     try {
                         if (window.__gakutenAuth.getAuth()?.mode !== 'admin') throw Error('请重新登录管理员账号。');
-                        const accounts = read();
+                        if (directory) {
+                            await directoryRequest('teachers', {
+                                id: teacher?.id, version: teacher?.version, name, loginId, active: fields.has('active'),
+                                classIds: [...directory.scopes].filter(([, scope]) => classes.includes(scope)).map(([id]) => id)
+                            });
+                            directory = await loadDirectory();
+                            const updated = directory.accounts.find(account => account.loginId === loginId);
+                            render();
+                            openEditor(updated);
+                            showFeedback('已保存两边共用的教师账号与班级授权。', 'success');
+                            return;
+                        }
+                        const accounts = readAccounts();
                         if (accounts.some(entry => entry.loginId === loginId && entry.id !== teacher?.id)) throw Error('该教师 ID 已被使用。');
                         const index = accounts.findIndex(entry => entry.id === teacher?.id);
                         if (teacher && accounts[index]?.version !== teacher.version) throw Error('账号已变更，请重新打开编辑。');
