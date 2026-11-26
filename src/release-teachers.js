@@ -1,5 +1,6 @@
 (() => {
     const key = 'gk2_teacher_accounts_v1';
+    let feedbackTimer;
     const read = () => JSON.parse(localStorage.getItem(key) || '[]');
     const normalize = value => value.trim().toLowerCase();
     const classKey = (campus, grade, classId) => JSON.stringify([campus, grade, classId]);
@@ -71,6 +72,7 @@
             const classPicker = find('[data-teacher-classes]');
             const classCount = find('[data-teacher-class-count]');
             const options = availableClasses();
+            const feedback = find('[data-teacher-feedback]');
             let selectedId = null;
 
             function element(tag, className, text) {
@@ -85,7 +87,17 @@
                 const label = options.get(scope) || (Array.isArray(parts) ? parts.join(' · ') : String(scope));
                 const segments = Array.isArray(parts) ? parts : label.split('·').map(part => part.trim());
                 const title = segments.at(-1) || label;
-                return { title, label, group: segments.length >= 2 ? segments.slice(0, -1).join(' · ') : '其他教学班' };
+                const campus = segments.length >= 3 ? segments[0] : '';
+                return { title, label, summary: campus ? campus + '·' + title : title,
+                    group: segments.length >= 2 ? segments.slice(0, -1).join(' · ') : '其他教学班' };
+            }
+            function showFeedback(message = '', state = 'error') {
+                clearTimeout(feedbackTimer);
+                feedback.removeAttribute('data-state');
+                feedback.textContent = message;
+                if (!message) return;
+                feedback.dataset.state = state;
+                if (state === 'success') feedbackTimer = setTimeout(() => showFeedback(), 3240);
             }
             function setState(badge, active) {
                 badge.dataset.state = active ? 'active' : 'inactive';
@@ -120,12 +132,12 @@
                         element('span', 'teacher-auth-badge', teacher.loginId), badge);
                     const classes = element('span', 'teacher-auth-class-summary');
                     for (const scope of teacher.classes.slice(0, 3)) {
-                        const { title, label } = describeClass(scope);
-                        const chip = element('span', 'teacher-auth-badge', title);
+                        const { summary, label } = describeClass(scope);
+                        const chip = element('span', 'teacher-auth-class-badge', summary);
                         chip.title = label;
                         classes.append(chip);
                     }
-                    if (teacher.classes.length > 3) classes.append(element('span', 'teacher-auth-badge', '+' + (teacher.classes.length - 3)));
+                    if (teacher.classes.length > 3) classes.append(element('span', 'teacher-auth-class-badge', '+' + (teacher.classes.length - 3)));
                     if (!teacher.classes.length) classes.textContent = '暂未分配教学班';
                     row.append(heading, classes);
                     row.onclick = () => openEditor(teacher);
@@ -136,6 +148,7 @@
                 classCount.textContent = '已选 ' + classPicker.querySelectorAll('input:checked').length + ' 个';
             }
             function showEmpty() {
+                showFeedback();
                 selectedId = null;
                 editor.hidden = true;
                 editor.reset();
@@ -145,6 +158,7 @@
                 render();
             }
             function openEditor(teacher) {
+                showFeedback();
                 selectedId = teacher?.id || null;
                 for (const row of list.querySelectorAll('[data-teacher-id]')) {
                     row.setAttribute('aria-pressed', String(row.dataset.teacherId === selectedId));
@@ -163,39 +177,45 @@
                 editor.elements.loginId.value = teacher?.loginId || '';
                 editor.elements.active.checked = teacher?.active ?? true;
                 classPicker.replaceChildren();
-                const scopes = new Set([...options.keys(), ...(teacher?.classes || [])]);
+                const selected = new Set(teacher?.classes);
+                const scopes = new Set([...options.keys(), ...selected]);
                 const groups = new Map();
                 for (const scope of scopes) {
                     const { title, label, group } = describeClass(scope);
-                    if (!groups.has(group)) {
-                        const section = element('section', 'teacher-auth-class-group');
-                        const chips = element('div', 'teacher-auth-chips');
-                        section.append(element('h4', '', group), chips);
-                        groups.set(group, chips);
-                        classPicker.append(section);
+                    if (!groups.has(group)) groups.set(group, []);
+                    groups.get(group).push({ scope, title, label });
+                }
+                const orderedGroups = [...groups].sort((a, b) =>
+                    Number(b[1].some(item => selected.has(item.scope))) -
+                    Number(a[1].some(item => selected.has(item.scope))));
+                for (const [group, items] of orderedGroups) {
+                    const section = element('section', 'teacher-auth-class-group');
+                    const chips = element('div', 'teacher-auth-chips');
+                    for (const { scope, title, label } of items.sort((a, b) =>
+                        a.title.localeCompare(b.title, 'zh-CN', { numeric: true }))) {
+                        const choice = element('label', 'teacher-auth-chip');
+                        const check = document.createElement('input');
+                        check.type = 'checkbox';
+                        check.name = 'scope';
+                        check.value = scope;
+                        check.checked = selected.has(scope);
+                        check.setAttribute('aria-label', label);
+                        choice.append(check, element('span', '', title));
+                        chips.append(choice);
                     }
-                    const choice = element('label', 'teacher-auth-chip');
-                    const check = document.createElement('input');
-                    check.type = 'checkbox';
-                    check.name = 'scope';
-                    check.value = scope;
-                    check.checked = teacher?.classes.includes(scope) || false;
-                    check.setAttribute('aria-label', label);
-                    choice.append(check, element('span', '', title));
-                    groups.get(group).append(choice);
+                    section.append(element('h4', '', group), chips);
+                    classPicker.append(section);
                 }
                 if (!scopes.size) classPicker.textContent = '请先在学生名单中添加教学班。';
                 updateCount();
-                const status = editor.querySelector('[role="alert"]');
                 const save = editor.querySelector('[type="submit"]');
-                status.textContent = '';
                 editor.onsubmit = event => {
                     event.preventDefault();
                     const fields = new FormData(editor);
                     const name = fields.get('teacherName').trim(), loginId = normalize(fields.get('loginId'));
                     const classes = fields.getAll('scope');
                     if (!name || !loginId || /\s/.test(loginId) || !classes.length) {
-                        status.textContent = '请填写教师姓名、无空格的 ID，并至少选择一个教学班。';
+                        showFeedback('请填写教师姓名、无空格的 ID，并至少选择一个教学班。');
                         return;
                     }
                     save.disabled = true;
@@ -212,9 +232,9 @@
                         localStorage.setItem(key, JSON.stringify(accounts));
                         render();
                         openEditor(updated);
-                        find('[role="alert"]').textContent = '已保存教师账号与班级授权。';
+                        showFeedback('已保存教师账号与班级授权。', 'success');
                     } catch (error) {
-                        status.textContent = error.message;
+                        showFeedback(error.message);
                     } finally {
                         save.disabled = false;
                     }

@@ -332,10 +332,12 @@ window.gk2IconMarkup = function(name) {
                             </div>
                         </div>
                         <div class="teacher-auth-classes" data-teacher-classes role="group" aria-labelledby="teacher-auth-class-title"></div>
-                        <p class="teacher-auth-error" role="alert"></p>
                         <footer class="teacher-auth-form-actions">
-                            <button type="button" class="teacher-auth-secondary" data-teacher-cancel>取消编辑</button>
-                            <button type="submit" class="teacher-auth-primary">保存教师</button>
+                            <p class="teacher-auth-feedback" role="status" aria-atomic="true" data-teacher-feedback></p>
+                            <div>
+                                <button type="button" class="teacher-auth-secondary" data-teacher-cancel>取消编辑</button>
+                                <button type="submit" class="teacher-auth-primary">保存教师</button>
+                            </div>
                         </footer>
                     </form>
                 </section>
