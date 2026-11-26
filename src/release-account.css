@@ -1,0 +1,84 @@
+.gk2-app .sidebar-bottom > .sidebar-logout-link { display: none !important; }
+.gk2-app .sidebar-bottom > #gk2-cloud-lamp.gk2-account-avatar {
+    --avatar-ink: #805312;
+    --avatar-bg: #fff1ce;
+    --avatar-edge: #e6c576;
+    display: grid !important;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    margin: 2px auto;
+    padding: 0;
+    border: 1px solid var(--avatar-edge) !important;
+    border-radius: 50% !important;
+    background: var(--avatar-bg) !important;
+    color: var(--avatar-ink);
+}
+.gk2-app #gk2-cloud-lamp.gk2-account-avatar::before {
+    content: '';
+    width: 19px;
+    height: 19px;
+    background: currentColor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='8' r='3.5'/%3E%3Cpath d='M5 21v-1a7 7 0 0 1 14 0v1'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.gk2-app #gk2-cloud-lamp.gk2-account-avatar #sync-dot { display: none !important; }
+.gk2-app #gk2-cloud-lamp.gk2-account-avatar[data-state="healthy"] { --avatar-ink:#166534; --avatar-bg:#dcfce7; --avatar-edge:#86cf9d; }
+.gk2-app #gk2-cloud-lamp.gk2-account-avatar[data-state="error"] { --avatar-ink:#991b1b; --avatar-bg:#fee2e2; --avatar-edge:#e9a1a1; }
+.gk2-app #gk2-cloud-lamp.gk2-account-avatar[data-state="paused"] { --avatar-ink:#475569; --avatar-bg:#f1f5f9; --avatar-edge:#cbd5e1; }
+.gk2-app #gk2-cloud-lamp.gk2-account-avatar:hover { box-shadow: 0 2px 6px #29304426; }
+.gk2-app #gk2-cloud-lamp.gk2-account-avatar:focus-visible { outline: 2px solid #7564d7; outline-offset: 3px; }
+.gk2-test-settings { grid-column: 1 / -1; }
+.gk2-test-settings[hidden], #gk2-account-dialog [hidden] { display: none !important; }
+.gk2-test-banner {
+    position: fixed;
+    inset: auto 12px 12px auto;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 8px 6px 12px;
+    border: 1px solid #e6c576;
+    border-radius: 9px;
+    background: #fff6df;
+    color: #684613;
+    box-shadow: 0 2px 8px #49320e1a;
+    font-size: 12px;
+}
+.gk2-avatar-label { display: grid; gap: 2px; justify-items: center; text-align: center; color: #334155; font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+.gk2-avatar-label small { color: #526079; font-size: 10px; }
+.gk2-avatar-label small:empty, .gk2-avatar-label[hidden], #gk2-teacher-panel form[hidden], #auth-teacher-id[hidden] { display: none !important; }
+#auth-teacher-id { width: 100%; box-sizing: border-box; }
+#auth-switch-entry { border: 0; background: transparent; color: #5943a9; text-decoration: underline; padding: 4px; }
+#gk2-teacher-panel form, #gk2-teacher-panel [data-teacher-list] { display: grid; gap: 8px; margin: 12px 0; }
+#gk2-teacher-panel form > label { display: grid; gap: 4px; }
+#gk2-teacher-panel form > label:has(input[type="checkbox"]) { display: flex; align-items: center; }
+#gk2-teacher-panel fieldset { display: grid; gap: 6px; max-height: 180px; overflow: auto; border: 1px solid #cbd5e1; border-radius: 8px; }
+#gk2-teacher-panel fieldset label { display: flex; align-items: baseline; gap: 8px; }
+.gk2-teacher-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; }
+.gk2-app .sidebar-bottom > .gk2-avatar-label:not([hidden]) { display: grid !important; }
+.gk2-roster-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 0 12px;
+}
+.gk2-roster-switch .secondary[aria-pressed="true"] {
+    background: #f4e3cd;
+    border-color: #d3a366;
+    color: #71380c;
+    font-weight: 650;
+}
+.gk2-roster-switch[hidden], #gk2-teacher-panel[hidden], #tree-container-students[hidden],
+body:has(#view-students.active #gk2-teacher-panel:not([hidden])) #gk2-roster-quick-actions {
+    display: none !important;
+}
+#gk2-teacher-panel { padding-block: 14px; }
+.gk2-teacher-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gk2-teacher-toolbar input { flex: 1 1 220px; min-width: 0; max-width: 360px; }
+.gk2-teacher-row { padding: 12px 0; border-bottom: 1px solid #e1e7ef; }
+.gk2-teacher-row > div { min-width: 0; overflow-wrap: anywhere; }
+.gk2-teacher-row small { display: block; margin-top: 2px; color: #526079; }
+.gk2-teacher-row p { margin: 6px 0 0; }
+.gk2-teacher-empty { margin: 8px 0; color: #526079; }
+#gk2-teacher-panel form { max-width: 640px; }

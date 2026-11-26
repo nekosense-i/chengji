@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import re
 import shutil
+from src.release_roster import update_roster
 
 ROOT = Path(__file__).resolve().parent
 
@@ -44,8 +45,31 @@ def add_disclosure_features(features):
 def build(destination):
     html = (ROOT / 'src/release/Gakuten-2.0.base.html').read_text()
     generated = {}
+    environment_path = re.search(r'assets/app/environment\.bf17fc814be52ccf\.js', html)[0]
+    environment = (ROOT / environment_path).read_text()
+    environment = environment.replace(",prefix='gk2_live_v1:';", ''';
+ const testMode = new URLSearchParams(location.search).get('mode') === 'test';
+ const prefix = testMode ? 'gk2_release_test_v1:' : 'gk2_live_v1:';
+ window.gk2ReleaseTest = testMode;''', 1)
+    environment = environment.replace("window.gk2LegacySeed=nativeLocal.getItem", "window.gk2LegacySeed=testMode ? null : nativeLocal.getItem", 1)
+    environment = environment.replace('getItem:k=>storage.getItem(prefix+k)', "getItem:k=>testMode && k==='gakuten_cloud_sync_disabled' ? '1' : storage.getItem(prefix+k)", 1)
+    environment = environment.replace('window.fetch=async(input,options={})=>{', "window.fetch=async(input,options={})=>{\n  if(testMode) throw new DOMException('测试模式仅使用本机数据', 'SecurityError');", 1)
+    environment = environment.replace("isolated:false,mode:'original-cloud'", "isolated:testMode,mode:testMode?'release-test':'original-cloud'", 1)
+    environment = environment.replace("if(v.startsWith('demo-'))", "if(!window.gk2ReleaseTest && v.startsWith('demo-'))", 1)
+    environment += '\nif (window.gk2ReleaseTest) {\n' + (ROOT / 'src/demo.js').read_text() + '\n}\n'
+
+    foundation_path = re.search(r'assets/app/foundation\.[a-f0-9]+\.js', html)[0]
+    foundation = (ROOT / foundation_path).read_text()
+    foundation = foundation.replace('return parsed;', 'return window.gk2TeacherAccounts?.validateSession(parsed) ?? (parsed.teacherId ? null : parsed);', 1)
+    foundation = foundation.replace("if (!window.pinyinPro && !await window.__gakutenLoadPinyin())", "const teacherField = document.getElementById('auth-teacher-id');\n                const teacherId = teacherField && !teacherField.hidden ? teacherField.value.trim() : null;\n                if (teacherId === '') { setErrorVisible(true, '请输入教师 ID。'); return false; }\n                if (!teacherId && !window.pinyinPro && !await window.__gakutenLoadPinyin())", 1)
+    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", "let auth;\n                try {\n                    auth = teacherId ? await window.gk2TeacherAccounts.signIn(teacherId, input.value) : resolveAuthByPassword(input ? input.value : '');\n                } catch (error) {\n                    setErrorVisible(true, error.message);\n                    return false;\n                }", 1)
+    foundation = foundation.replace('const doLogout = () => {', "const doLogout = () => {\n                    if (window.gk2ReleaseTest) sessionStorage.setItem('gk2_logged_out', '1');", 1)
+    foundation += '\n' + (ROOT / 'src/release-teachers.js').read_text()
+
     core_path = re.search(r'assets/app/core\.[a-f0-9]+\.js', html)[0]
     core = (ROOT / core_path).read_text()
+    core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
+    core = core.replace('if (barEl) barEl.style.width = `${pct.toFixed(1)}%`;', "if (barEl) { barEl.style.width = `${pct.toFixed(1)}%`; barEl.dataset.level = pct > 90 ? 'high' : pct >= 70 ? 'warning' : 'normal'; }", 1)
     anchor = '            return { Store, Sync, UI };'
     if core.count(anchor) != 1:
         raise RuntimeError('Production AppCore anchor changed')
@@ -196,10 +220,12 @@ def build(destination):
     if core.count(total_anchor) != 1:
         raise RuntimeError('Production field merge anchor changed')
     core = core.replace(total_anchor, '  this._mergeDerivedTotal(a,b,out);\n' + total_anchor, 1)
+    core = update_roster(core)
     features_path = re.search(r'assets/app/features\.[a-f0-9]+\.js', html)[0]
     features = (ROOT / features_path).read_text()
     replacements = {
         "const state=!sync.isEnabled()?'paused':navigator.onLine===false?'error':sync._lampActive?'busy':sync._lampState||'busy';": "const state=sync.connectionStatus().state;",
+        "const toggle=button(sync.isEnabled()?": "const toggle=window.gk2ReleaseTest || window.__gakutenAuth?.getAuth()?.teacherId ? null : button(sync.isEnabled()?",
         "const text={paused:": "const text={pending:'已保存到本机，等待云端确认；点击查看同步详情',paused:",
         "if(!sync.isEnabled()){window.gk2OpenSyncStatus();return;}await sync.pull({manual:true});": "if(!sync.isEnabled()||['pending','error'].includes(sync.connectionStatus().state)){window.gk2OpenSyncStatus();return;}await sync.manualSync();",
         "if(sync.isEnabled()&&!sync._lampActive)sync.pull({manual:true});": "if(sync.isEnabled()&&!sync._lampActive)sync.pullIfDue();",
@@ -257,7 +283,23 @@ def build(destination):
         if features.count(old) != 1:
             raise RuntimeError('Production JLPT overview anchor changed: ' + old[:90])
         features = features.replace(old, new, 1)
+    features = features.replace("settings.before(lamp);", "settings.after(lamp);")
+    features = features.replace("lamp.className='gk2-cloud-lamp';", "lamp.className='gk2-cloud-lamp gk2-account-avatar';")
+    features = features.replace("lamp.onclick=async()=>{if(sync._lampActive||sync.isPulling||sync.isPushing)return;if(!sync.isEnabled()||['pending','error'].includes(sync.connectionStatus().state)){window.gk2OpenSyncStatus();return;}await sync.manualSync();};", "lamp.onclick=window.gk2OpenAccount;")
+    features = features.replace("lamp.setAttribute('aria-label','数据保存与同步状态')", "lamp.setAttribute('aria-label','账号与云同步')")
+    features = features.replace("tooltip.textContent=text;", "tooltip.textContent=window.gk2ReleaseTest ? '测试模式 · 仅保存到本机' : text;", 1)
+    features = features.replace("$('.sidebar-logout-link').addEventListener", "$('.sidebar-logout-link')?.addEventListener", 1)
+    features = features.replace("if(importButton&&assistantActions){assistantActions.append(importButton);importButton.hidden=true;}", """
+  const commands = $('#gk2-student-roster-commands');
+  if(add&&commands){commands.append(add);add.removeAttribute('aria-describedby');add.textContent='+ 添加学生';}
+  if(importButton&&commands){commands.append(importButton);importButton.removeAttribute('aria-describedby');importButton.textContent='批量导入';}
+""", 1)
+    sync_start = features.index('window.gk2OpenSyncStatus=function(){')
+    sync_end = features.index("window.addEventListener('load',()=>{", sync_start)
+    features = features[:sync_start] + (ROOT / 'src/release-sync-dialog.js').read_text() + '\n' + features[sync_end:]
+    features = features.replace("status.textContent=!sync.isEnabled()?", "status.dataset.state=sync.connectionStatus().state;status.textContent=!sync.isEnabled()?", 1)
     features += '\n' + (ROOT / 'src/jlpt-score-overview.js').read_text()
+    features += '\n' + (ROOT / 'src/release-account.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
     idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'
@@ -268,7 +310,10 @@ def build(destination):
     styles += '\n' + (ROOT / 'src/disclosure-motion.css').read_text()
     styles = re.sub(r'#modal-settings (?=\.gk2-settings-(?:header|close)|\.dialog-title)', ':is(#modal-settings, #modal-exam, #modal-edit-exam) ', styles)
     styles += '\n' + (ROOT / 'src/exam-dialog.css').read_text()
-    for old, content in [(core_path, core), (features_path, features), (styles_path, styles)]:
+    styles += '\n' + (ROOT / 'src/release-account.css').read_text()
+    styles += '\n' + (ROOT / 'src/release-settings.css').read_text()
+    styles += '\n' + (ROOT / 'src/release-roster.css').read_text()
+    for old, content in [(environment_path, environment), (foundation_path, foundation), (core_path, core), (features_path, features), (styles_path, styles)]:
         label = old.split('/')[-1].split('.')[0]
         new = f'assets/app/{label}.{hashlib.sha256(content.encode()).hexdigest()[:16]}{Path(old).suffix}'
         html = html.replace(old, new)
