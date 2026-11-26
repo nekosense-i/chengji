@@ -147,27 +147,6 @@ window.gk2DismissibleDialog = function (dialog, label) {
         new MutationObserver(updateModelPriority).observe(document.getElementById('ai-model-status'), {
             childList: true, characterData: true, subtree: true
         });
-        const loginId = document.getElementById('auth-teacher-id');
-        const loginPassword = document.getElementById('auth-password');
-        const switchEntry = document.getElementById('auth-switch-entry');
-        const passwordField = loginPassword.closest('.auth-password-wrap');
-        const loginButton = document.querySelector('#auth-overlay .auth-btn');
-        loginId.addEventListener('keydown', event => {
-            if (event.key !== 'Enter' || event.isComposing) return;
-            event.preventDefault();
-            loginButton.click();
-        });
-        switchEntry.onclick = () => {
-            loginId.hidden = !loginId.hidden;
-            loginId.value = '';
-            loginPassword.value = '';
-            passwordField.hidden = !loginId.hidden;
-            document.getElementById('auth-error').style.display = 'none';
-            window.__gakutenUpdatePinyinStatus();
-            document.getElementById('auth-current-entry').textContent = loginId.hidden ? '管理员密码登录' : (window.gk2SharedTeacherGradesReady && !testing ? '共用云端教师账号' : '本机教师账号');
-            switchEntry.textContent = loginId.hidden ? '教师 ID 登录' : '管理员密码登录';
-            (loginId.hidden ? loginPassword : loginId).focus();
-        };
         const avatar = document.getElementById('gk2-cloud-lamp');
         document.querySelector('.sidebar-bottom [aria-label="系统设置"]').title = '系统设置';
         if (testing) avatar?.setAttribute('data-test-active', '');

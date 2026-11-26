@@ -62,8 +62,8 @@
             name: teacher.name, loginId: teacher.loginId, campus, grade, classId,
             ...(teacher === sharedTeacher && { sharedDirectory: true }) };
     };
-    async function readSharedTeacher() {
-        const { user, classes } = await directoryRequest('roster');
+    async function readSharedTeacher(directory) {
+        const { user, classes } = directory || await directoryRequest('roster');
         if (user.role !== 'teacher' || !user.active) return null;
         return {
             ...user,
@@ -97,16 +97,15 @@
             const url = localFile ? 'https://chengji.nekosensei.cn/gakuten-teacher-grades' : '/gakuten-teacher-grades';
             return fetch(url,{...options,headers:{...options.headers,...(token && {Authorization:'Bearer '+token})}});
         },
-        async resolvePassword(password) {
-            if (window.gk2ReleaseTest) return password.trim() === 'nekosensei' ? {mode:'admin'} : null;
-            if (!useSharedDirectory() || !password) return null;
-            try {
-                const {user} = await directoryRequest('session', {role:'admin',loginId:'nekosensei',password});
-                if (user?.role === 'admin' && user.active) return {mode:'admin',cloudAdmin:true};
-            } catch (error) {
-                if (error.status !== 401 && error.status !== 403) throw error;
-            }
-            throw Error('管理员口令不正确，请使用 Gakupo 的管理员口令。');
+        async signIn(credential) {
+            if (window.gk2ReleaseTest) return credential.trim() === 'nekosensei' ? {mode:'admin'} : null;
+            if (!useSharedDirectory() || !credential.trim()) return null;
+            const directory = await directoryRequest('session', {role:'auto',credential});
+            if (directory.user?.role === 'admin' && directory.user.active) return {mode:'admin',cloudAdmin:true};
+            sharedTeacher = await readSharedTeacher(directory);
+            const scope = sharedTeacher && cloudScope(null,sharedTeacher);
+            if (!scope) throw Error('该账号暂无可用教学班，请联系管理员。');
+            return session(sharedTeacher,scope);
         },
         async restoreAdminSession() {
             try {
@@ -145,20 +144,6 @@
                 return null;
             })().finally(() => { sessionRead = null; });
             return sessionRead;
-        },
-        async signIn(id) {
-            if (useSharedDirectory() && window.gk2SharedTeacherGradesReady) {
-                await directoryRequest('session', { role: 'teacher', loginId: normalize(id) });
-                sharedTeacher = await readSharedTeacher();
-                const scope = sharedTeacher && cloudScope(null, sharedTeacher);
-                if (!scope) throw Error('该账号暂无可用教学班，请联系管理员。');
-                return session(sharedTeacher, scope);
-            }
-            const teacher = read().find(entry => entry.loginId === normalize(id) && entry.active);
-            if (!teacher) return null;
-            const scope = teacher.classes.find(value => availableClasses().has(value));
-            if (!scope) throw Error('该账号暂无可用教学班，请联系管理员。');
-            return session(teacher, scope);
         },
         renderClasses(container, identity) {
             container.replaceChildren();

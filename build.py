@@ -85,12 +85,19 @@ def build(destination):
     foundation_path = re.search(r'assets/app/foundation\.[a-f0-9]+\.js', html)[0]
     foundation = (ROOT / foundation_path).read_text()
     foundation = foundation.replace("btn.classList.toggle('is-loading', loading);\n                    btn.disabled = loading;",
-                                    "const field = document.getElementById('auth-teacher-id');\n                    const teacherEntry = true;\n                    btn.classList.toggle('is-loading', loading && !teacherEntry);\n                    btn.disabled = loading && !teacherEntry;", 1)
-    foundation = foundation.replace("if (text) text.textContent = ready ?", "if (text) text.textContent = teacherEntry || ready ?", 1)
+                                    "btn.classList.remove('is-loading');\n                    btn.disabled = false;", 1)
+    foundation = foundation.replace("if (text) text.textContent = ready ?", "if (text) text.textContent = true ?", 1)
     foundation = foundation.replace('return parsed;', 'return window.gk2TeacherAccounts ? window.gk2TeacherAccounts.validateSession(parsed) : parsed;', 1)
-    foundation = foundation.replace("if (!window.pinyinPro && !await window.__gakutenLoadPinyin())", "const teacherField = document.getElementById('auth-teacher-id');\n                const teacherId = teacherField && !teacherField.hidden ? teacherField.value.trim() : null;\n                if (teacherId === '') { setErrorVisible(true, '请输入教师 ID。'); return false; }\n                if (false)", 1)
-    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", "let auth;\n                try {\n                    auth = teacherId ? await window.gk2TeacherAccounts.signIn(teacherId) : await window.gk2TeacherAccounts.resolvePassword(input?.value || '');\n                } catch (error) {\n                    setErrorVisible(true, error.message);\n                    return false;\n                }", 1)
-    foundation = foundation.replace("setErrorVisible(true, '账号或密码错误（请注意大小写）');", "setErrorVisible(true, teacherId ? '教师 ID 不存在或账号已停用。' : '账号或密码错误（请注意大小写）');", 1)
+    foundation = foundation.replace("if (!window.pinyinPro && !await window.__gakutenLoadPinyin())", "if (false)", 1)
+    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", """let auth;
+                if (!input?.value.trim()) { setErrorVisible(true, '请输入教师 ID 或管理员密码。'); return false; }
+                try {
+                    auth = await window.gk2TeacherAccounts.signIn(input.value);
+                } catch (error) {
+                    setErrorVisible(true, error.message);
+                    return false;
+                }""", 1)
+    foundation = foundation.replace("setErrorVisible(true, '账号或密码错误（请注意大小写）');", "setErrorVisible(true, '教师 ID 或管理员密码不正确。');", 1)
     auth_start = foundation.index('            const buildAuthCandidates =')
     auth_end = foundation.index('            const setErrorVisible =', auth_start)
     foundation = foundation[:auth_start] + foundation[auth_end:]
