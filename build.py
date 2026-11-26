@@ -269,7 +269,9 @@ def build(destination):
     core = add_disclosure_core(core)
     core = core.replace(
         '            return { Store, Sync, UI };',
-        (ROOT / 'src/interaction-optimizations.js').read_text() + '\n            return { Store, Sync, UI };',
+        '\n'.join((ROOT / 'src' / name).read_text() for name in (
+            'interaction-optimizations.js', 'shared-roster.js', 'shared-roster-ui.js', 'shared-teacher-grades.js'
+        )) + '\n            return { Store, Sync, UI };',
         1,
     )
     match_pattern = re.compile(r'(?P<indent>[ \t]*)const targetStudent = this\.store\.state\.data\.students\.find\(s => \{(?P<body>[\s\S]*?)\n(?P=indent)\}\);')
@@ -382,9 +384,6 @@ def build(destination):
     features = features.replace("status.textContent=!sync.isEnabled()?", "status.dataset.state=sync.connectionStatus().state;status.textContent=!sync.isEnabled()?", 1)
     features += '\n' + (ROOT / 'src/jlpt-score-overview.js').read_text()
     features += '\n' + (ROOT / 'src/release-account.js').read_text()
-    features += '\n' + (ROOT / 'src/shared-roster.js').read_text()
-    features += '\n' + (ROOT / 'src/shared-roster-ui.js').read_text()
-    features += '\n' + (ROOT / 'src/shared-teacher-grades.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
     idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'
