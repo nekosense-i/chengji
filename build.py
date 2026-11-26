@@ -157,6 +157,41 @@ def build(destination):
     core = core.replace("Number(row.querySelector('.qs')?.value)", "this._readExamQuestionMax(row.querySelector('.qs'))")
     core = core.replace("row.querySelector('.q-count')?.value || ''", "row.querySelector('.q-count')?.dataset.manualCount || row.querySelector('.q-count')?.value || ''")
     core = add_disclosure_core(core)
+    core = core.replace(
+        '            return { Store, Sync, UI };',
+        (ROOT / 'src/interaction-optimizations.js').read_text() + '\n            return { Store, Sync, UI };',
+        1,
+    )
+    match_pattern = re.compile(r'(?P<indent>[ \t]*)const targetStudent = this\.store\.state\.data\.students\.find\(s => \{(?P<body>[\s\S]*?)\n(?P=indent)\}\);')
+    core, match_count = match_pattern.subn(
+        lambda match: f"{match.group('indent')}const targetMatches = this.store.state.data.students.filter(s => {{{match.group('body')}\n{match.group('indent')}}});\n{match.group('indent')}const targetStudent = targetMatches.length === 1 ? targetMatches[0] : null;",
+        core,
+    )
+    if match_count != 2:
+        raise RuntimeError(f'Production score import student match anchors changed: {match_count}')
+    tab_anchor = """                        if (event.key === 'Tab') {
+                            event.preventDefault();
+                            const moved = moveHorizontal(event.shiftKey ? -1 : 1);
+                            if (!moved) moveVertical(event.shiftKey ? -1 : 1);
+                        }"""
+    tab_replacement = """                        if (event.key === 'Tab') {
+                            const direction = event.shiftKey ? -1 : 1;
+                            const moved = moveHorizontal(direction);
+                            if (moved) {
+                                event.preventDefault();
+                                return;
+                            }
+                            const row = target.closest('tr');
+                            const rows = Array.from(wrapper.querySelectorAll('tr[data-gk2-entry-student]'));
+                            const rowIndex = rows.indexOf(row);
+                            const nextRow = rows[rowIndex + direction];
+                            const nextInputs = nextRow ? Array.from(nextRow.querySelectorAll('.score-input:not(:disabled)')) : [];
+                            const nextInput = direction > 0 ? nextInputs[0] : nextInputs[nextInputs.length - 1];
+                            if (nextInput && focusAndSelect(nextInput)) event.preventDefault();
+                        }"""
+    if core.count(tab_anchor) != 1:
+        raise RuntimeError('Production score entry Tab anchor changed')
+    core = core.replace(tab_anchor, tab_replacement, 1)
     total_anchor = '  out._ts=Math.max(time(a._ts),time(b._ts),...Object.values(out._fieldTs));'
     if core.count(total_anchor) != 1:
         raise RuntimeError('Production field merge anchor changed')
