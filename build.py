@@ -49,8 +49,15 @@ def build(destination):
     environment = environment.replace(",prefix='gk2_live_v1:';", ''';
  const testMode = new URLSearchParams(location.search).get('mode') === 'test';
  const prefix = testMode ? 'gk2_release_test_v1:' : 'gk2_live_v1:';
- window.gk2ReleaseTest = testMode;''', 1)
-    environment = environment.replace("window.gk2LegacySeed=nativeLocal.getItem", "window.gk2LegacySeed=testMode ? null : nativeLocal.getItem", 1)
+ window.gk2ReleaseTest = testMode;
+ if (!testMode && location.hostname === 'chengji.nekosensei.cn') {
+  try {
+   const identity = JSON.parse(nativeLocal.getItem(prefix+'gakuten_auth') || 'null');
+   if (identity?.sharedDirectory && identity.teacherId) window.gk2TeacherWorkspaceId = identity.teacherId;
+  } catch {}
+  window.gk2SharedTeacherGradesReady = true;
+ }''', 1)
+    environment = environment.replace("window.gk2LegacySeed=nativeLocal.getItem", "window.gk2LegacySeed=testMode || window.gk2TeacherWorkspaceId ? null : nativeLocal.getItem", 1)
     environment = environment.replace('getItem:k=>storage.getItem(prefix+k)', "getItem:k=>testMode && k==='gakuten_cloud_sync_disabled' ? '1' : storage.getItem(prefix+k)", 1)
     environment = environment.replace('window.fetch=async(input,options={})=>{', "window.fetch=async(input,options={})=>{\n  if(testMode) throw new DOMException('测试模式仅使用本机数据', 'SecurityError');", 1)
     environment = environment.replace("isolated:false,mode:'original-cloud'", "isolated:testMode,mode:testMode?'release-test':'original-cloud'", 1)
@@ -77,7 +84,11 @@ def build(destination):
                     const stored = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
                     if (!stored?.sharedDirectory || stored.teacherId !== identity.teacherId) return;
                     if (auth) saveAuth(auth);
-                    else clearAuth();
+                    else {
+                        clearAuth();
+                        location.reload();
+                        return;
+                    }
                     applyAuthToUI();
                     window.app?.ui?.refresh?.();
                 } catch (error) {
@@ -85,10 +96,14 @@ def build(destination):
                 }
             });
             window.__gakutenLogin = login;''', 1)
+    foundation = foundation.replace("                saveAuth(auth);\n                setErrorVisible(false);",
+                                    "                saveAuth(auth);\n                if (auth.sharedDirectory) { location.reload(); return true; }\n                setErrorVisible(false);",1)
     foundation += '\n' + (ROOT / 'src/release-teachers.js').read_text()
 
     core_path = re.search(r'assets/app/core\.[a-f0-9]+\.js', html)[0]
     core = (ROOT / core_path).read_text()
+    core = core.replace("this.KEY = 'gakuten_data_v1';",
+                        "this.KEY = window.gk2TeacherWorkspaceId ? 'gakuten_teacher_data:'+window.gk2TeacherWorkspaceId : 'gakuten_data_v1';",1)
     core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
     core = core.replace('if (barEl) barEl.style.width = `${pct.toFixed(1)}%`;', "if (barEl) { barEl.style.width = `${pct.toFixed(1)}%`; barEl.dataset.level = pct > 90 ? 'high' : pct >= 70 ? 'warning' : 'normal'; }", 1)
     core = core.replace("() => {\n                            this._archiveRosterStudents([id]);",
@@ -359,6 +374,7 @@ def build(destination):
     features += '\n' + (ROOT / 'src/release-account.js').read_text()
     features += '\n' + (ROOT / 'src/shared-roster.js').read_text()
     features += '\n' + (ROOT / 'src/shared-roster-ui.js').read_text()
+    features += '\n' + (ROOT / 'src/shared-teacher-grades.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
     idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'
