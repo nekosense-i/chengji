@@ -77,7 +77,6 @@ body:has(#view-students #gk2-teacher-panel:not([hidden])) #gk2-roster-selection-
 .gk2-teacher-class-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .gk2-teacher-empty, [data-teacher-editor-empty] { color: var(--roster-muted); padding: 16px 0; }
 .gk2-teacher-empty { text-align: center; }
-#gk2-teacher-panel:has(form:not([hidden])) .gk2-teacher-empty { visibility: hidden; }
 #gk2-teacher-panel form { max-width: none; }
 #gk2-teacher-panel form i { color: #a62b38; font-style: normal; }
 #gk2-teacher-panel form input:not([type=checkbox]) { width: 100%; min-width: 0; box-sizing: border-box; }

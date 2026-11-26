@@ -70,6 +70,7 @@
             if (window.__gakutenAuth.getAuth()?.mode !== 'admin') return;
             const dialog = document.getElementById('gk2-teacher-panel');
             const list = dialog.querySelector('[data-teacher-list]');
+            const addButton = document.querySelector('[data-teacher-add]');
             const editor = dialog.querySelector('form');
             const editorTitle = dialog.querySelector('[data-teacher-editor-title]');
             const editorEmpty = dialog.querySelector('[data-teacher-editor-empty]');
@@ -83,7 +84,7 @@
             }
             editor.querySelector('[data-teacher-cancel]').onclick = () => {
                 hideEditor();
-                dialog.querySelector('[data-teacher-add]').focus();
+                addButton.focus();
             };
             passwordToggle.onclick = () => {
                 const visible = passwordInput.type === 'password';
@@ -104,7 +105,7 @@
                 if (!teachers.length) {
                     const empty = document.createElement('p');
                     empty.className = 'gk2-teacher-empty';
-                    empty.textContent = query ? '没有匹配的教师。' : '还没有教师账号。点击「添加教师」为老师分配教学班。';
+                    empty.textContent = query ? '没有匹配的教师。' : '暂无已保存的教师账号。';
                     list.append(empty);
                 }
                 for (const teacher of teachers) {
@@ -191,7 +192,8 @@
                         check.value = scope;
                         check.checked = teacher?.classes.includes(scope) || false;
                         const text = document.createElement('span');
-                        text.textContent = title;
+                        text.className = 'gk2-teacher-class-name';
+                        text.textContent = JSON.parse(scope)[2];
                         text.title = title;
                         label.append(check, text);
                         fieldset.append(label);
@@ -248,7 +250,7 @@
             const search = dialog.querySelector('[data-teacher-search]');
             search.value = '';
             search.oninput = () => render(search.value);
-            dialog.querySelector('[data-teacher-add]').onclick = () => openEditor();
+            addButton.onclick = () => openEditor();
             hideEditor();
             render();
         }

@@ -291,10 +291,11 @@ window.gk2IconMarkup = function(name) {
             </div>
             <div class="gk2-roster-heading">
                 <div class="gk2-roster-switch" role="group" aria-label="名单类型" hidden>
-                    <button type="button" class="secondary" data-roster-section="students" aria-pressed="true">学生名单</button>
-                    <button type="button" class="secondary" data-roster-section="teachers" aria-pressed="false">教师与班级授权</button>
+                    <button type="button" class="analysis-tab" data-roster-section="students" aria-pressed="true">学生名单</button>
+                    <button type="button" class="analysis-tab" data-roster-section="teachers" aria-pressed="false">教师与班级授权</button>
                 </div>
                 <div id="gk2-student-roster-commands" aria-label="学生名单操作"></div>
+                <div id="gk2-teacher-roster-commands" hidden><button type="button" class="gk2-roster-primary" data-teacher-add>+ 添加教师</button></div>
             </div>
             <div class="content-body" id="tree-container-students"></div>
             <section id="gk2-teacher-panel" class="content-body" aria-label="教师与班级授权" hidden>
@@ -302,7 +303,6 @@ window.gk2IconMarkup = function(name) {
                     <header class="gk2-teacher-card-header"><h2>教师账号</h2><span class="gk2-teacher-local" title="账号与授权保存在当前浏览器">本机账号</span></header>
                     <div class="gk2-teacher-toolbar">
                         <input type="search" data-teacher-search placeholder="搜索姓名、教师 ID 或教学班" aria-label="查找教师">
-                        <button type="button" class="gk2-roster-primary" data-teacher-add>+ 添加教师</button>
                     </div>
                     <div data-teacher-list aria-live="polite"></div>
                 </div>

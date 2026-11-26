@@ -10,7 +10,7 @@ def update_roster(core):
     roster = re.sub(r'^.*html \+= `<details class="tree-level" id="\$\{idCam\}".*\n', '', roster, flags=re.M)
     roster = re.sub(
         r'<details class="tree-level" id="\$\{idGrd\}".*?<div class="tree-content">',
-        r'''<section class="gk2-roster-group"><header class="gk2-roster-group-heading"><strong>${safeCampusLabel} · ${safeGradeLabel}</strong>${groupEditButton('campus', cam)}${groupEditButton('grade', grd, cam)}</header>''',
+        r'''<section class="gk2-roster-group"><header class="gk2-roster-group-heading"><span class="gk2-roster-group-label"><strong>${safeCampusLabel}</strong>${groupEditButton('campus', cam)}</span><span aria-hidden="true">·</span><span class="gk2-roster-group-label"><strong>${safeGradeLabel}</strong>${groupEditButton('grade', grd, cam)}</span></header>''',
         roster, count=1,
     )
     roster = roster.replace('                            html += `</div></details>`;\n                        }\n                        html += `</div></details>`;',
@@ -18,7 +18,8 @@ def update_roster(core):
     roster = re.sub(r'<th>学生姓名</th>.*?<\/th>\s*\n', '<th>学生姓名</th><th>原行政班</th><th>标签</th><th>操作</th>\n', roster, count=1)
     roster = re.sub(r'^.*const safe(?:Campus|Grade|Class) = .*\n', '', roster, flags=re.M)
     roster = re.sub(r'^.*<td><input class="student-input" value="\$\{safe(?:Campus|Grade|Class)\}".*\n', '', roster, flags=re.M)
-    roster = roster.replace('<td><input class="student-input" value="${safeName}"', '<td><div class="gk2-roster-name"><input aria-label="学生姓名" class="student-input" value="${safeName}"', 1)
+    roster = roster.replace('title="编辑名称"', '''title="编辑${kind === 'campus' ? '校区' : kind === 'grade' ? '年级' : '班级'}名称"''')
+    roster = roster.replace('<td><input class="student-input" value="${safeName}"', '''<td><div class="gk2-roster-name"><input aria-label="学生姓名" class="student-input" style="--roster-name-length:${Math.max(5, Math.min(12, String(s.name || '').length))}" value="${safeName}"''', 1)
     roster = roster.replace('看档案</a></td>', '档案</a>${transferMark}</div></td>', 1)
     roster = roster.replace('href="#" class="table-link--student" onclick="window.app.ui.openStudentDashboardModal(\'${s.id}\')"', 'href="#" class="table-link--student" onclick="event.preventDefault(); window.app.ui.openStudentDashboardModal(\'${s.id}\')"', 1)
     roster = roster.replace('class="cell-min-120"', 'class="gk2-roster-tags"')

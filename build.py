@@ -5,6 +5,7 @@ import hashlib
 import re
 import shutil
 from src.release_roster import update_roster
+from src.release_modules import update_modules_core, update_modules_features
 
 ROOT = Path(__file__).resolve().parent
 
@@ -220,7 +221,7 @@ def build(destination):
     if core.count(total_anchor) != 1:
         raise RuntimeError('Production field merge anchor changed')
     core = core.replace(total_anchor, '  this._mergeDerivedTotal(a,b,out);\n' + total_anchor, 1)
-    core = update_roster(core)
+    core = update_modules_core(update_roster(core))
     features_path = re.search(r'assets/app/features\.[a-f0-9]+\.js', html)[0]
     features = (ROOT / features_path).read_text()
     replacements = {
@@ -294,10 +295,13 @@ def build(destination):
   if(add&&commands){commands.append(add);add.removeAttribute('aria-describedby');add.textContent='+ 添加学生';}
   if(importButton&&commands){commands.append(importButton);importButton.removeAttribute('aria-describedby');importButton.textContent='批量导入';}
 """, 1)
+    features = features.replace("const tracks=[details,analysis].filter(Boolean);", "const roster=$('.gk2-roster-switch');if(roster)slot.append(roster);\n  const tracks=[details,analysis,roster].filter(Boolean);", 1)
+    features = features.replace("function syncCapsuleTabs(page,ui){", "function syncCapsuleTabs(page,ui){\n  const roster=$('.gk2-roster-switch');if(roster)roster.hidden=page!=='students'||window.__gakutenAuth?.getAuth()?.mode!=='admin';", 1)
     sync_start = features.index('window.gk2OpenSyncStatus=function(){')
     sync_end = features.index("window.addEventListener('load',()=>{", sync_start)
     features = features[:sync_start] + (ROOT / 'src/release-sync-dialog.js').read_text() + '\n' + features[sync_end:]
     features = features.replace("status.textContent=!sync.isEnabled()?", "status.dataset.state=sync.connectionStatus().state;status.textContent=!sync.isEnabled()?", 1)
+    features = update_modules_features(features)
     features += '\n' + (ROOT / 'src/jlpt-score-overview.js').read_text()
     features += '\n' + (ROOT / 'src/release-account.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
@@ -313,6 +317,8 @@ def build(destination):
     styles += '\n' + (ROOT / 'src/release-account.css').read_text()
     styles += '\n' + (ROOT / 'src/release-settings.css').read_text()
     styles += '\n' + (ROOT / 'src/release-roster.css').read_text()
+    styles += '\n' + (ROOT / 'src/release-navigation.css').read_text()
+    styles += '\n' + (ROOT / 'src/release-modules.css').read_text()
     for old, content in [(environment_path, environment), (foundation_path, foundation), (core_path, core), (features_path, features), (styles_path, styles)]:
         label = old.split('/')[-1].split('.')[0]
         new = f'assets/app/{label}.{hashlib.sha256(content.encode()).hexdigest()[:16]}{Path(old).suffix}'

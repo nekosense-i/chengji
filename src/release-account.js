@@ -97,6 +97,17 @@ window.gk2DismissibleDialog = function (dialog, label) {
             button.onclick = switchMode;
         }
         const rosterSwitch = document.querySelector('.gk2-roster-switch');
+        const topbar = document.querySelector('.gk2-topbar');
+        const tools = document.getElementById('gk2-header-context');
+        const rosterCommands = document.querySelector('.gk2-roster-heading');
+        topbar.insertBefore(rosterCommands, tools);
+        const scopeButton = document.getElementById('gk2-bi-scope-toggle');
+        function updateRosterScope() {
+            const focus = window.app.store.state.globalFocus;
+            scopeButton.toggleAttribute('data-roster-filter-active', Object.values(focus).some(values => Array.isArray(values) && values.length));
+        }
+        window.gk2.shellEffects.push(updateRosterScope);
+        updateRosterScope();
         const teacherPanel = document.getElementById('gk2-teacher-panel');
         const studentPanel = document.getElementById('tree-container-students');
         function selectRoster(section) {
@@ -104,6 +115,8 @@ window.gk2DismissibleDialog = function (dialog, label) {
             if (teachers && teacherPanel.hidden) window.gk2TeacherAccounts.render();
             teacherPanel.hidden = !teachers;
             studentPanel.hidden = teachers;
+            rosterCommands.dataset.view = teachers ? 'teachers' : 'students';
+            document.getElementById('gk2-teacher-roster-commands').hidden = !teachers;
             document.getElementById('gk2-student-roster-commands').hidden = teachers;
             if (teachers) window.gk2Comfort?.closeLibrary();
             if (teachers) {
@@ -171,7 +184,7 @@ window.gk2DismissibleDialog = function (dialog, label) {
             const identity = auth();
             const admin = identity?.mode === 'admin';
             settings.hidden = !testing && !admin;
-            rosterSwitch.hidden = !admin;
+            rosterSwitch.hidden = !admin || window.gk2.page !== 'students';
             if (!admin) selectRoster('students');
             name.textContent = identity ? identity.name || (admin ? '管理员' : '任课教师') : '';
             avatarLabel.title = admin ? '教务管理员 · 全部教学范围' : name.textContent;
@@ -188,10 +201,10 @@ window.gk2DismissibleDialog = function (dialog, label) {
             document.title = '测试模式 · ' + document.title;
             document.getElementById('cloud-sync-toggle').disabled = true;
             const banner = document.createElement('div');
-            banner.className = 'gk2-test-banner';
-            banner.innerHTML = '<strong>测试模式 · 虚拟数据</strong><button type="button" class="secondary">返回正式模式</button>';
+            banner.className = 'gk2-test-capsule';
+            banner.innerHTML = '<strong>测试<span>模式</span></strong><button type="button" aria-label="返回正式模式">退出</button>';
             banner.querySelector('button').onclick = switchMode;
-            document.querySelector('.gk2-topbar').after(banner);
+            topbar.insertBefore(banner, rosterCommands);
         }
     });
 })();
