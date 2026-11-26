@@ -62,7 +62,7 @@ def build(destination):
     environment = environment.replace('window.fetch=async(input,options={})=>{', "window.fetch=async(input,options={})=>{\n  if(testMode) throw new DOMException('测试模式仅使用本机数据', 'SecurityError');", 1)
     environment = environment.replace(
         "const url=new URL(typeof input==='string'?input:input.url),method=String(options.method||input?.method||'GET').toUpperCase();",
-        '''const url=new URL(typeof input==='string'?input:input.url,location.href),method=String(options.method||input?.method||'GET').toUpperCase();
+        r'''const url=new URL(typeof input==='string'?input:input.url,location.href),method=String(options.method||input?.method||'GET').toUpperCase();
   if (url.origin===location.origin && location.hostname==='chengji.nekosensei.cn' && !url.search && !url.hash && (
       /^\/gakupo-directory\/(session|roster|roster-import|teachers)$/.test(url.pathname) &&
           (['GET','POST'].includes(method) || method==='DELETE' && url.pathname.endsWith('/session')) ||
@@ -71,6 +71,8 @@ def build(destination):
     environment = environment.replace("isolated:false,mode:'original-cloud'", "isolated:testMode,mode:testMode?'release-test':'original-cloud'", 1)
     environment = environment.replace("if(v.startsWith('demo-'))", "if(!window.gk2ReleaseTest && v.startsWith('demo-'))", 1)
     environment += '\nif (window.gk2ReleaseTest) {\n' + (ROOT / 'src/demo.js').read_text() + '\n}\n'
+
+    environment += "\nif (window.gk2TeacherWorkspaceId && window.gk2Migration) window.gk2Migration.key += ':' + window.gk2TeacherWorkspaceId;\n"
 
     foundation_path = re.search(r'assets/app/foundation\.[a-f0-9]+\.js', html)[0]
     foundation = (ROOT / foundation_path).read_text()
@@ -112,7 +114,7 @@ def build(destination):
     core = (ROOT / core_path).read_text()
     core = core.replace("this.KEY = 'gakuten_data_v1';",
                         "this.KEY = window.gk2TeacherWorkspaceId ? 'gakuten_teacher_data:'+window.gk2TeacherWorkspaceId : 'gakuten_data_v1';",1)
-    core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
+    core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.gk2TeacherWorkspaceId && !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
     core = core.replace('if (barEl) barEl.style.width = `${pct.toFixed(1)}%`;', "if (barEl) { barEl.style.width = `${pct.toFixed(1)}%`; barEl.dataset.level = pct > 90 ? 'high' : pct >= 70 ? 'warning' : 'normal'; }", 1)
     core = core.replace("() => {\n                            this._archiveRosterStudents([id]);",
                         "async () => {\n                            if (await this._archiveRosterStudents([id]) === false) return;")
