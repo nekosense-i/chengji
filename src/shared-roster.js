@@ -27,6 +27,13 @@
 
     function makeChanges(directory, command) {
         const {groups, students} = directoryIndex(directory);
+        if (command.kind === 'set-category') {
+            const room = groups.get(scopeKey(command));
+            if (!room) throw Error('教学班已变化，请重新打开编辑。');
+            if (!['gaokao','study-abroad',''].includes(command.category)) throw Error('教学类别无效。');
+            return room.teachingCategory === command.category ? [] :
+                [change([room.id,'info','teachingCategory'],room.teachingCategory,command.category)];
+        }
         if (command.kind === 'archive-many') {
             return [...new Set(command.gakutenIds)].map(id=>{
                 const student = students.get(id);
@@ -103,7 +110,7 @@
     }
 
     function project(directory, data, { timestamp, effectiveDate, participates }) {
-        const {students} = directoryIndex(directory);
+        const {students,groups} = directoryIndex(directory);
         const changed = [];
         const existing = new Map(data.students.map(student=>[student.id,student]));
         const gradeChanges = [];
@@ -113,6 +120,7 @@
             const history = structuredClone(previous?.classHistory || []);
             const oldMembership = previous?.rosterMembership;
             const next = { ...previous, ...profile, id };
+            next.sharedClassId = groups.get(scopeKey(profile))?.id;
             if (previous && previous.grade !== profile.grade &&
                 data.exams.some(exam=>participates(previous,exam))) {
                 gradeChanges.push(id);
@@ -137,7 +145,7 @@
                 next.rosterMembership = {version:1,archivedAt:null,includedExamIds:included,
                     excludedExamIds:data.exams.filter(exam=>!included.includes(exam.id)).map(exam=>exam.id)};
             }
-            if (!previous || profileFields.some(field=>next[field]!==previous[field]) || oldMembership?.archivedAt != null) {
+            if (!previous || previous.sharedClassId !== next.sharedClassId || profileFields.some(field=>next[field]!==previous[field]) || oldMembership?.archivedAt != null) {
                 changed.push({...next,_ts:Math.max(timestamp,(previous?._ts || 0)+1)});
             }
         }

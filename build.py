@@ -171,6 +171,14 @@ def build(destination):
                             return;
                         }
                         const duplicate = students.some''', 1)
+    group = group.replace('                        if (nextValue === oldValue) {', '''                        const categorySave = this.submitTeachingCategory?.(dialog,campus,grade,oldValue,nextValue);
+                        if (categorySave) {
+                            if (await categorySave) close();
+                            return;
+                        }
+                        if (nextValue === oldValue) {''',1)
+    group = group.replace('                    dialog.showModal();', '''                    dialog.showModal();
+                    this.addTeachingCategoryField?.(dialog,kind,campus,grade,oldValue);''',1)
     core = core[:group_start] + group + core[group_end:]
     import_anchor = "                        if (this._rosterImporting) return;"
     if core.count(import_anchor) != 1:

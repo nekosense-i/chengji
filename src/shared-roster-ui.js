@@ -122,6 +122,45 @@
         return update({kind:'archive-many',gakutenIds:ids});
     };
 
+    UI.prototype.addTeachingCategoryField = async function (dialog,kind,campus,grade,teachingClass) {
+        if (!active() || kind !== 'teachingClass') return;
+        const field = dialog.querySelector('[data-group-name]');
+        const label = document.createElement('label');
+        label.className = 'field-label';
+        label.textContent = '教学类别';
+        const select = document.createElement('select');
+        select.setAttribute('aria-label','教学类别');
+        for (const [name,id] of [['未分类',''],['高考日语','gaokao'],['留学','study-abroad']]) {
+            select.add(new Option(name,id));
+        }
+        select.disabled = true;
+        label.append(select);
+        field.after(label);
+        try {
+            const state = await request('roster');
+            const info = Object.values(state.classes).map(room=>room.info).find(info=>
+                info.campus === campus && info.grade === grade && info.teachingClass === teachingClass);
+            if (!info || !dialog.open) return;
+            select.value = info.teachingCategory || '';
+            select.dataset.initial = select.value;
+            select.disabled = false;
+        } catch (error) {
+            label.remove();
+            Utils.msg(error.message,'error');
+        }
+        select.dataset.sharedTeachingCategory = '';
+    };
+
+    UI.prototype.submitTeachingCategory = function (dialog,campus,grade,teachingClass,nextName) {
+        const select = dialog.querySelector('[data-shared-teaching-category]');
+        if (!select || select.disabled || select.value === select.dataset.initial) return null;
+        if (nextName !== teachingClass) {
+            Utils.msg('请先保存教学类别，再单独修改班级名称。','error');
+            return Promise.resolve(false);
+        }
+        return update({kind:'set-category',campus,grade,teachingClass,category:select.value});
+    };
+
     UI.prototype.submitSharedGroupRename = function (field,original,name,campus,grade) {
         if (!active()) return null;
         if (field === 'grade' && this.store.state.data.exams.some(exam=>exam.grade===original)) {
