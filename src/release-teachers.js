@@ -1,17 +1,26 @@
 (() => {
     const key = 'gk2_teacher_accounts_v1';
     let feedbackTimer, sharedTeacher, sessionRead;
+    const localFile = location.protocol === 'file:';
+    const directoryBase = localFile ? 'https://gakupo.nekosensei.cn/api/' : '/gakupo-directory/';
+    const tokenKey = 'gk2_gakupo_directory_session';
     function useSharedDirectory() {
-        return location.hostname === 'chengji.nekosensei.cn' && !window.gk2ReleaseTest;
+        return !window.gk2ReleaseTest && (localFile || location.hostname === 'chengji.nekosensei.cn');
     }
-    async function directoryRequest(route, body) {
-        const response = await fetch('/gakupo-directory/' + route, body ? {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        } : {});
+    async function directoryRequest(route, body, method = body ? 'POST' : 'GET') {
+        const token = localFile && sessionStorage.getItem(tokenKey);
+        const response = await fetch(directoryBase + route, {
+            method,
+            headers: {
+                ...(body && { 'Content-Type': 'application/json' }),
+                ...(token && { Authorization: 'Bearer ' + token })
+            },
+            ...(body && { body: JSON.stringify(body) })
+        });
         const result = await response.json();
+        if (localFile && response.status === 401) sessionStorage.removeItem(tokenKey);
         if (!response.ok) throw Object.assign(Error(result.error || '无法读取云端教师目录。'), { status: response.status });
+        if (localFile && route === 'session' && result.token) sessionStorage.setItem(tokenKey,result.token);
         return result;
     }
     async function loadDirectory() {
@@ -109,7 +118,8 @@
         connectDirectory: password => directoryRequest('session', {role:'admin',loginId:'nekosensei',password}),
         async disconnectDirectory() {
             if (!useSharedDirectory()) return;
-            await fetch('/gakupo-directory/session', { method: 'DELETE' });
+            try { await directoryRequest('session',undefined,'DELETE'); }
+            finally { if (localFile) sessionStorage.removeItem(tokenKey); }
         },
         validateSession(identity) {
             if (!identity.teacherId) return identity;

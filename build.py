@@ -63,6 +63,12 @@ def build(destination):
     environment = environment.replace(
         "const url=new URL(typeof input==='string'?input:input.url),method=String(options.method||input?.method||'GET').toUpperCase();",
         r'''const url=new URL(typeof input==='string'?input:input.url,location.href),method=String(options.method||input?.method||'GET').toUpperCase();
+  if (location.protocol==='file:' && url.origin==='https://gakupo.nekosensei.cn' &&
+      !url.username && !url.password && !url.search && !url.hash &&
+      (/^\/api\/(roster|teachers)$/.test(url.pathname) && ['GET','POST'].includes(method) ||
+       url.pathname==='/api/session' && ['POST','DELETE'].includes(method))) {
+    return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
+  }
   if (url.origin===location.origin && location.hostname==='chengji.nekosensei.cn' && !url.search && !url.hash && (
       /^\/gakupo-directory\/(session|roster|roster-import|teachers)$/.test(url.pathname) &&
           (['GET','POST'].includes(method) || method==='DELETE' && url.pathname.endsWith('/session')) ||

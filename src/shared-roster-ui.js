@@ -1,6 +1,6 @@
 (() => {
     const directory = window.gk2TeacherAccounts;
-    if (!directory.sharedDirectoryAvailable()) return;
+    if (location.protocol === 'file:' || !directory.sharedDirectoryAvailable()) return;
     const actions = window.gk2SharedRoster;
     const auth = () => window.__gakutenAuth.getAuth();
     const request = (route, body) => directory.directoryRequest(route, body);
