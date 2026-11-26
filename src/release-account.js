@@ -122,11 +122,6 @@ window.gk2DismissibleDialog = function (dialog, label) {
         for (const button of rosterSwitch.querySelectorAll('button')) {
             button.onclick = () => selectRoster(button.dataset.rosterSection);
         }
-        teacherPanel.querySelector('[data-teacher-cancel]').onclick = () => {
-            teacherPanel.querySelector('form').hidden = true;
-            teacherPanel.querySelector('form').reset();
-            teacherPanel.querySelector('[data-teacher-add]').focus();
-        };
         dialog.querySelector('[data-account-teachers]').onclick = () => {
             dialog.close();
             window.gk2.navigate('students');

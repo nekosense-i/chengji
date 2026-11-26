@@ -59,63 +59,133 @@
         },
         render() {
             if (window.__gakutenAuth.getAuth()?.mode !== 'admin') return;
-            const dialog = document.getElementById('gk2-teacher-panel');
-            const list = dialog.querySelector('[data-teacher-list]');
-            const editor = dialog.querySelector('form');
+            const workspace = document.getElementById('gk2-teacher-panel');
+            const find = selector => workspace.querySelector(selector);
+            const list = find('[data-teacher-list]');
+            const editor = find('form');
+            const editorEmpty = find('[data-teacher-editor-empty]');
+            const editorTitle = find('[data-teacher-editor-title]');
+            const editorState = find('[data-teacher-editor-state]');
+            const search = find('[data-teacher-search]');
+            const clearSearch = find('[data-teacher-search-clear]');
+            const classPicker = find('[data-teacher-classes]');
+            const classCount = find('[data-teacher-class-count]');
             const options = availableClasses();
-            function render(query = '') {
+            let selectedId = null;
+
+            function element(tag, className, text) {
+                const node = document.createElement(tag);
+                if (className) node.className = className;
+                if (text) node.textContent = text;
+                return node;
+            }
+            function describeClass(scope) {
+                let parts;
+                try { parts = JSON.parse(scope); } catch { parts = null; }
+                const label = options.get(scope) || (Array.isArray(parts) ? parts.join(' · ') : String(scope));
+                const segments = Array.isArray(parts) ? parts : label.split('·').map(part => part.trim());
+                const title = segments.at(-1) || label;
+                return { title, label, group: segments.length >= 2 ? segments.slice(0, -1).join(' · ') : '其他教学班' };
+            }
+            function setState(badge, active) {
+                badge.dataset.state = active ? 'active' : 'inactive';
+                badge.textContent = active ? '已启用' : '已停用';
+            }
+            function render() {
+                const accounts = read();
+                const query = normalize(search.value);
+                find('[data-teacher-total]').textContent = accounts.length + ' 位';
+                clearSearch.hidden = !search.value;
+                const teachers = accounts.filter(teacher =>
+                    [teacher.name, teacher.loginId, ...teacher.classes.map(scope => describeClass(scope).label)]
+                        .some(value => value.toLowerCase().includes(query)));
                 list.replaceChildren();
-                const teachers = read().filter(teacher => [teacher.name, teacher.loginId, ...teacher.classes.map(scope => options.get(scope) || scope)]
-                    .some(value => value.toLowerCase().includes(normalize(query))));
                 if (!teachers.length) {
-                    const empty = document.createElement('p');
-                    empty.className = 'gk2-teacher-empty';
-                    empty.textContent = query ? '没有匹配的教师。' : '还没有教师账号。点击「添加教师」为老师分配教学班。';
+                    const empty = element('div', 'teacher-auth-empty');
+                    const icon = element('span', 'teacher-auth-empty-icon');
+                    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>';
+                    empty.append(icon, element('strong', '', query ? '未找到匹配教师' : '暂无教师账号'),
+                        element('small', '', query ? '可尝试其他关键词。' : '点击「+ 添加教师」创建。'));
                     list.append(empty);
                 }
                 for (const teacher of teachers) {
-                    const row = document.createElement('div');
-                    row.className = 'gk2-teacher-row';
-                    const details = document.createElement('div');
-                    const name = document.createElement('strong');
-                    const identity = document.createElement('small');
-                    const classes = document.createElement('p');
-                    name.textContent = teacher.name;
-                    identity.textContent = teacher.loginId + ' · ' + (teacher.active ? '已启用' : '已停用');
-                    classes.textContent = '负责班级：' + teacher.classes.map(scope => options.get(scope) || JSON.parse(scope).join(' · ')).join('、');
-                    details.append(name, identity, classes);
-                    const edit = document.createElement('button');
-                    edit.type = 'button';
-                    edit.className = 'secondary';
-                    edit.textContent = '编辑';
-                    edit.setAttribute('aria-label', '编辑 ' + teacher.name);
-                    edit.onclick = () => openEditor(teacher);
-                    row.append(details, edit);
+                    const row = element('button', 'teacher-auth-row');
+                    row.type = 'button';
+                    row.dataset.teacherId = teacher.id;
+                    row.setAttribute('aria-pressed', String(selectedId === teacher.id));
+                    const heading = element('span', 'teacher-auth-row-heading');
+                    const badge = element('span', 'teacher-auth-badge');
+                    setState(badge, teacher.active);
+                    heading.append(element('strong', '', teacher.name),
+                        element('span', 'teacher-auth-badge', teacher.loginId), badge);
+                    const classes = element('span', 'teacher-auth-class-summary');
+                    for (const scope of teacher.classes.slice(0, 3)) {
+                        const { title, label } = describeClass(scope);
+                        const chip = element('span', 'teacher-auth-badge', title);
+                        chip.title = label;
+                        classes.append(chip);
+                    }
+                    if (teacher.classes.length > 3) classes.append(element('span', 'teacher-auth-badge', '+' + (teacher.classes.length - 3)));
+                    if (!teacher.classes.length) classes.textContent = '暂未分配教学班';
+                    row.append(heading, classes);
+                    row.onclick = () => openEditor(teacher);
                     list.append(row);
                 }
             }
+            function updateCount() {
+                classCount.textContent = '已选 ' + classPicker.querySelectorAll('input:checked').length + ' 个';
+            }
+            function showEmpty() {
+                selectedId = null;
+                editor.hidden = true;
+                editor.reset();
+                editorTitle.textContent = '教师资料与授权';
+                editorState.hidden = true;
+                editorEmpty.hidden = false;
+                render();
+            }
             function openEditor(teacher) {
+                selectedId = teacher?.id || null;
+                for (const row of list.querySelectorAll('[data-teacher-id]')) {
+                    row.setAttribute('aria-pressed', String(row.dataset.teacherId === selectedId));
+                }
                 editor.hidden = false;
+                editorEmpty.hidden = true;
+                editorTitle.textContent = teacher ? '编辑教师：' + teacher.name : '新建教师账号';
+                editorState.hidden = false;
+                if (teacher) setState(editorState, teacher.active);
+                else {
+                    editorState.dataset.state = 'new';
+                    editorState.textContent = '新建中';
+                }
                 editor.reset();
                 editor.elements.teacherName.value = teacher?.name || '';
                 editor.elements.loginId.value = teacher?.loginId || '';
                 editor.elements.active.checked = teacher?.active ?? true;
-                const fieldset = editor.querySelector('[data-teacher-classes]');
-                fieldset.replaceChildren();
-                const legend = document.createElement('legend');
-                legend.textContent = '负责教学班';
-                fieldset.append(legend);
-                if (!options.size) fieldset.append('请先在学生名单中添加教学班。');
-                for (const [scope, title] of options) {
-                    const label = document.createElement('label');
+                classPicker.replaceChildren();
+                const scopes = new Set([...options.keys(), ...(teacher?.classes || [])]);
+                const groups = new Map();
+                for (const scope of scopes) {
+                    const { title, label, group } = describeClass(scope);
+                    if (!groups.has(group)) {
+                        const section = element('section', 'teacher-auth-class-group');
+                        const chips = element('div', 'teacher-auth-chips');
+                        section.append(element('h4', '', group), chips);
+                        groups.set(group, chips);
+                        classPicker.append(section);
+                    }
+                    const choice = element('label', 'teacher-auth-chip');
                     const check = document.createElement('input');
                     check.type = 'checkbox';
                     check.name = 'scope';
                     check.value = scope;
                     check.checked = teacher?.classes.includes(scope) || false;
-                    label.append(check, title);
-                    fieldset.append(label);
+                    check.setAttribute('aria-label', label);
+                    choice.append(check, element('span', '', title));
+                    groups.get(group).append(choice);
                 }
+                if (!scopes.size) classPicker.textContent = '请先在学生名单中添加教学班。';
+                updateCount();
                 const status = editor.querySelector('[role="alert"]');
                 const save = editor.querySelector('[type="submit"]');
                 status.textContent = '';
@@ -140,24 +210,39 @@
                         if (index < 0) accounts.push(updated);
                         else accounts[index] = updated;
                         localStorage.setItem(key, JSON.stringify(accounts));
-                        editor.hidden = true;
-                        editor.reset();
-                        render(dialog.querySelector('[data-teacher-search]').value);
+                        render();
+                        openEditor(updated);
+                        find('[role="alert"]').textContent = '已保存教师账号与班级授权。';
                     } catch (error) {
                         status.textContent = error.message;
                     } finally {
                         save.disabled = false;
                     }
                 };
-                editor.elements.teacherName.focus();
+                editor.elements.teacherName.focus({ preventScroll: true });
             }
-            const search = dialog.querySelector('[data-teacher-search]');
             search.value = '';
-            search.oninput = () => render(search.value);
-            dialog.querySelector('[data-teacher-add]').onclick = () => openEditor();
-            editor.hidden = true;
-            editor.reset();
-            render();
+            search.oninput = render;
+            clearSearch.onclick = () => {
+                search.value = '';
+                render();
+                search.focus();
+            };
+            find('[data-teacher-add]').onclick = () => openEditor();
+            find('[data-teacher-cancel]').onclick = () => {
+                const previousId = selectedId;
+                showEmpty();
+                const previous = [...list.querySelectorAll('[data-teacher-id]')].find(row => row.dataset.teacherId === previousId);
+                (previous || find('[data-teacher-add]')).focus();
+            };
+            classPicker.onchange = updateCount;
+            for (const button of workspace.querySelectorAll('[data-teacher-selection]')) {
+                button.onclick = () => {
+                    for (const box of classPicker.querySelectorAll('input')) box.checked = button.dataset.teacherSelection === 'all';
+                    updateCount();
+                };
+            }
+            showEmpty();
         }
     };
 })();

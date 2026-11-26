@@ -1,0 +1,175 @@
+#gk2-teacher-panel.teacher-auth-workspace:not([hidden]) {
+    --teacher-accent: #6255cf;
+    --teacher-accent-hover: #5144b7;
+    --teacher-muted: #59687d;
+    --teacher-line: #e2e8f0;
+    --teacher-focus: 0 0 0 3px #6366f124;
+    box-sizing: border-box;
+    display: grid !important;
+    grid-template-columns: minmax(300px, 36%) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+    width: 100%;
+    padding: 20px 24px;
+}
+.teacher-auth-workspace [hidden] { display: none !important; }
+.teacher-auth-workspace .teacher-auth-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 272px;
+    padding: 18px;
+    border: 1px solid #eceef3;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 2px 10px #0f172a08;
+}
+.teacher-auth-workspace .teacher-auth-heading,
+.teacher-auth-workspace .teacher-auth-row-heading,
+.teacher-auth-workspace .teacher-auth-class-heading,
+.teacher-auth-workspace .teacher-auth-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.teacher-auth-workspace :is(h2, h3, h4, p) { margin: 0; }
+.teacher-auth-workspace h2 { font-size: 17px; line-height: 1.4; color: #26344c; overflow-wrap: anywhere; }
+.teacher-auth-workspace .teacher-auth-detail-heading { padding-bottom: 14px; border-bottom: 1px solid #eef1f6; }
+.teacher-auth-workspace .teacher-auth-heading [data-teacher-add] { margin-left: auto; }
+.teacher-auth-workspace .teacher-auth-badge {
+    display: inline-block;
+    max-width: 100%;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: #eef2f7;
+    color: #4c5d74;
+    font-size: 11px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.teacher-auth-workspace .teacher-auth-badge[data-state="active"] { background: #e5f5ec; color: #17613e; }
+.teacher-auth-workspace .teacher-auth-badge[data-state="new"] { background: #efecff; color: #5144b7; }
+.teacher-auth-workspace :is(.teacher-auth-primary, .teacher-auth-secondary) {
+    box-sizing: border-box;
+    min-height: 36px;
+    padding: 7px 12px;
+    border: 1px solid var(--teacher-line);
+    border-radius: 10px;
+    background: #fff;
+    color: #334155;
+    font-weight: 650;
+    font-size: 13px;
+    white-space: nowrap;
+}
+.teacher-auth-workspace .teacher-auth-primary { background: var(--teacher-accent); border-color: var(--teacher-accent); color: white; }
+.teacher-auth-workspace .teacher-auth-primary:hover { background: var(--teacher-accent-hover); }
+.teacher-auth-workspace .teacher-auth-secondary:hover { background: #f6f8fc; }
+.teacher-auth-workspace button:focus-visible { outline: 2px solid var(--teacher-accent); outline-offset: 2px; }
+.teacher-auth-workspace .teacher-auth-search { position: relative; margin-top: 14px; }
+.teacher-auth-workspace .teacher-auth-search svg { position: absolute; inset: 11px auto auto 11px; width: 16px; height: 16px; color: var(--teacher-muted); pointer-events: none; }
+.teacher-auth-workspace .teacher-auth-search input { padding-inline: 34px; }
+.teacher-auth-workspace .teacher-auth-search input::-webkit-search-cancel-button { appearance: none; }
+.teacher-auth-workspace [data-teacher-search-clear] {
+    position: absolute; inset: 4px 4px auto auto; width: 30px; height: 30px; min-height: 0;
+    padding: 0; border: 0; background: transparent; color: var(--teacher-muted); box-shadow: none; font-size: 19px;
+}
+.teacher-auth-workspace .teacher-auth-list { display: grid; align-content: start; gap: 8px; flex: 1; margin-block: 12px; }
+.teacher-auth-workspace .teacher-auth-row {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--teacher-line);
+    border-radius: 10px;
+    background: #fff;
+    text-align: left;
+    color: #293951;
+    box-shadow: none;
+}
+.teacher-auth-workspace .teacher-auth-row:hover { background: #f8f7ff; }
+.teacher-auth-workspace .teacher-auth-row[aria-pressed="true"] { border-color: #aaa0e8; background: #f1eeff; }
+.teacher-auth-workspace .teacher-auth-row strong { overflow-wrap: anywhere; }
+.teacher-auth-workspace .teacher-auth-class-summary { display: flex; flex-wrap: wrap; gap: 4px; color: var(--teacher-muted); font-size: 12px; }
+.teacher-auth-workspace .teacher-auth-empty { display: grid; place-content: center; justify-items: center; min-height: 116px; flex: 1; gap: 5px; color: var(--teacher-muted); text-align: center; font-size: 13px; }
+.teacher-auth-workspace .teacher-auth-empty-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #edf1f9; }
+.teacher-auth-workspace :is(.teacher-auth-note, .teacher-auth-empty-icon) svg { width: 15px; height: 15px; flex: none; }
+.teacher-auth-workspace .teacher-auth-note { display: flex; align-items: start; gap: 7px; padding: 8px 12px; border-radius: 8px; background: #f8fafc; color: var(--teacher-muted); font-size: 12px; }
+.teacher-auth-workspace form { display: grid; gap: 14px; margin-top: 14px; min-width: 0; }
+.teacher-auth-workspace .teacher-auth-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.teacher-auth-workspace form label { display: block; min-width: 0; font-size: 13px; font-weight: 500; color: #334155; line-height: 1.4; }
+.teacher-auth-workspace .teacher-auth-required { color: #ab303e; }
+.teacher-auth-workspace :is(input[type="search"], .teacher-auth-fields input) {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    border: 1px solid var(--teacher-line);
+    border-radius: 9px;
+    color: #26344c;
+    font-size: 13px;
+}
+.teacher-auth-workspace .teacher-auth-fields input { margin-top: 6px; }
+.teacher-auth-workspace :is(input[type="search"], .teacher-auth-fields input):focus {
+    outline: none !important; border: 1px solid var(--teacher-accent) !important; box-shadow: var(--teacher-focus) !important;
+}
+.teacher-auth-workspace input:is([type="checkbox"],[type="radio"]) { width: auto; max-width: none; flex: 0 0 auto; }
+.teacher-auth-workspace label.teacher-auth-enable {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 12px 14px; border: 1px solid #eff2f7; border-radius: 10px; background: #f8fafc;
+}
+.teacher-auth-workspace .teacher-auth-enable strong { white-space: nowrap; }
+.teacher-auth-workspace .teacher-auth-enable small { display: block; margin-top: 3px; color: var(--teacher-muted); }
+.teacher-auth-workspace .teacher-auth-enable input[role="switch"] {
+    appearance: none !important; position: relative; width: 38px !important; height: 23px; margin: 0;
+    border: 1px solid #8e9bb0; border-radius: 999px; background: #dbe2eb; box-shadow: none; cursor: pointer;
+}
+.teacher-auth-workspace .teacher-auth-enable input[role="switch"]::before {
+    content: ""; position: absolute; inset: 2px auto auto 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff;
+}
+.teacher-auth-workspace .teacher-auth-enable input[role="switch"]:checked { border-color: var(--teacher-accent); background: var(--teacher-accent); }
+.teacher-auth-workspace .teacher-auth-enable input[role="switch"]:checked::before { transform: translateX(15px); }
+.teacher-auth-workspace .teacher-auth-enable input[role="switch"]:focus-visible { outline: 2px solid var(--teacher-accent); outline-offset: 2px; }
+.teacher-auth-workspace .teacher-auth-class-heading { margin-bottom: -6px; }
+.teacher-auth-workspace .teacher-auth-class-heading h3 { font-size: 14px; }
+.teacher-auth-workspace .teacher-auth-class-heading > div { display: flex; gap: 10px; margin-left: auto; }
+.teacher-auth-workspace .teacher-auth-class-heading button {
+    min-height: 28px; padding: 0 3px; border: 0; background: transparent; box-shadow: none; color: var(--teacher-accent-hover); font-size: 12px;
+}
+.teacher-auth-workspace .teacher-auth-class-heading button:hover { text-decoration: underline; }
+.teacher-auth-workspace .teacher-auth-classes {
+    display: grid; gap: 14px; max-height: 300px; overflow-y: auto;
+    padding: 14px 16px; border: 1px solid var(--teacher-line); border-radius: 12px; background: #fafbfd;
+}
+.teacher-auth-workspace .teacher-auth-class-group { min-width: 0; }
+.teacher-auth-workspace .teacher-auth-class-group h4 { margin-bottom: 8px; font-size: 12px; color: var(--teacher-muted); }
+.teacher-auth-workspace .teacher-auth-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.teacher-auth-workspace label.teacher-auth-chip { position: relative; max-width: 100%; }
+.teacher-auth-workspace .teacher-auth-chip input[name="scope"] {
+    position: absolute; width: 1px !important; height: 1px !important; margin: 0; opacity: 0;
+}
+.teacher-auth-workspace .teacher-auth-chip > span {
+    display: inline-flex; align-items: center; gap: 5px; max-width: 100%; box-sizing: border-box;
+    padding: 6px 11px; border: 1px solid #dbe2ec; border-radius: 999px; color: #344359; background: #fff;
+    overflow-wrap: anywhere; cursor: pointer;
+}
+.teacher-auth-workspace .teacher-auth-chip:hover > span { border-color: #a79ce5; }
+.teacher-auth-workspace .teacher-auth-chip input:checked + span { border-color: #a69be7; background: #efecff; color: #4b3dad; font-weight: 650; }
+.teacher-auth-workspace .teacher-auth-chip input:checked + span::before { content: "✓"; }
+.teacher-auth-workspace .teacher-auth-chip input:focus-visible + span { outline: 2px solid var(--teacher-accent); outline-offset: 2px; }
+.teacher-auth-workspace .teacher-auth-form-actions { justify-content: flex-end; border-top: 1px solid #eef1f6; padding-top: 16px; gap: 10px; }
+.teacher-auth-workspace .teacher-auth-error { color: #9d2936; font-size: 12px; }
+.teacher-auth-workspace .teacher-auth-error:empty { display: none; }
+@media (width < 960px) {
+    #gk2-teacher-panel.teacher-auth-workspace:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 550px) {
+    #gk2-teacher-panel.teacher-auth-workspace:not([hidden]) { padding: 12px; gap: 12px; }
+    .teacher-auth-workspace .teacher-auth-card { padding: 14px; }
+    .teacher-auth-workspace .teacher-auth-fields { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}

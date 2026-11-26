@@ -294,24 +294,51 @@ window.gk2IconMarkup = function(name) {
                 <button type="button" class="secondary" data-roster-section="teachers" aria-pressed="false">教师与班级授权</button>
             </div>
             <div class="content-body" id="tree-container-students"></div>
-            <section id="gk2-teacher-panel" class="content-body" aria-label="教师与班级授权" hidden>
-                <div class="gk2-teacher-toolbar">
-                    <input type="search" data-teacher-search placeholder="姓名、教师 ID 或教学班" aria-label="查找教师">
-                    <button type="button" class="secondary btn--soft-primary" data-teacher-add>添加教师</button>
-                </div>
-                <p class="dialog-note">账号与授权保存在当前浏览器。</p>
-                <div data-teacher-list aria-live="polite"></div>
-                <form hidden>
-                    <label>教师姓名<input name="teacherName" maxlength="80" required></label>
-                    <label>教师 ID<input name="loginId" maxlength="80" required autocomplete="off" autocapitalize="none" spellcheck="false"></label>
-                    <label><input name="active" type="checkbox"> 启用账号</label>
-                    <fieldset data-teacher-classes></fieldset>
-                    <p role="alert"></p>
-                    <div class="gk2-sync-actions">
-                        <button type="submit" class="primary">保存教师</button>
-                        <button type="button" class="secondary" data-teacher-cancel>取消编辑</button>
+            <section id="gk2-teacher-panel" class="content-body teacher-auth-workspace" aria-label="教师与班级授权" hidden>
+                <section class="teacher-auth-card" aria-labelledby="teacher-auth-list-title">
+                    <header class="teacher-auth-heading">
+                        <h2 id="teacher-auth-list-title">教师列表</h2><span class="teacher-auth-badge" data-teacher-total></span>
+                        <button type="button" class="teacher-auth-primary" data-teacher-add>+ 添加教师</button>
+                    </header>
+                    <div class="teacher-auth-search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4 4"/></svg>
+                        <input type="search" data-teacher-search placeholder="姓名、教师 ID 或教学班" aria-label="查找教师">
+                        <button type="button" data-teacher-search-clear aria-label="清空搜索" hidden>×</button>
                     </div>
-                </form>
+                    <div class="teacher-auth-list" data-teacher-list aria-live="polite"></div>
+                    <p class="teacher-auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg>账号与授权保存在当前浏览器。</p>
+                </section>
+                <section class="teacher-auth-card" aria-labelledby="teacher-auth-form-title">
+                    <header class="teacher-auth-heading teacher-auth-detail-heading">
+                        <h2 id="teacher-auth-form-title" data-teacher-editor-title>教师资料与授权</h2>
+                        <span class="teacher-auth-badge" data-teacher-editor-state hidden></span>
+                    </header>
+                    <div class="teacher-auth-empty" data-teacher-editor-empty>选择一位教师查看或调整授权，也可以添加教师。</div>
+                    <form hidden>
+                        <div class="teacher-auth-fields">
+                            <label>教师姓名 <span class="teacher-auth-required" aria-hidden="true">*</span><input name="teacherName" maxlength="80" placeholder="例如：张老师" required></label>
+                            <label>教师 ID <span class="teacher-auth-required" aria-hidden="true">*</span><input name="loginId" maxlength="80" placeholder="例如：T202601" required autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+                        </div>
+                        <label class="teacher-auth-enable">
+                            <span><strong>启用账号</strong><small>关闭后将暂停该教师的登录与访问权限。</small></span>
+                            <input name="active" type="checkbox" role="switch" aria-label="启用账号">
+                        </label>
+                        <div class="teacher-auth-class-heading">
+                            <h3 id="teacher-auth-class-title">负责教学班</h3>
+                            <span class="teacher-auth-badge" data-teacher-class-count aria-live="polite"></span>
+                            <div>
+                                <button type="button" data-teacher-selection="all">全选</button>
+                                <button type="button" data-teacher-selection="none">清空</button>
+                            </div>
+                        </div>
+                        <div class="teacher-auth-classes" data-teacher-classes role="group" aria-labelledby="teacher-auth-class-title"></div>
+                        <p class="teacher-auth-error" role="alert"></p>
+                        <footer class="teacher-auth-form-actions">
+                            <button type="button" class="teacher-auth-secondary" data-teacher-cancel>取消编辑</button>
+                            <button type="submit" class="teacher-auth-primary">保存教师</button>
+                        </footer>
+                    </form>
+                </section>
             </section>
         </section>
 

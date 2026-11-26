@@ -47,15 +47,9 @@
 }
 .gk2-avatar-label { display: grid; gap: 2px; justify-items: center; text-align: center; color: #334155; font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
 .gk2-avatar-label small { color: #526079; font-size: 10px; }
-.gk2-avatar-label small:empty, .gk2-avatar-label[hidden], #gk2-teacher-panel form[hidden], #auth-teacher-id[hidden], .auth-password-wrap[hidden] { display: none !important; }
+.gk2-avatar-label small:empty, .gk2-avatar-label[hidden], #auth-teacher-id[hidden], .auth-password-wrap[hidden] { display: none !important; }
 #auth-teacher-id { width: 100%; box-sizing: border-box; }
 #auth-switch-entry { border: 0; background: transparent; color: #5943a9; text-decoration: underline; padding: 4px; }
-#gk2-teacher-panel form, #gk2-teacher-panel [data-teacher-list] { display: grid; gap: 8px; margin: 12px 0; }
-#gk2-teacher-panel form > label { display: grid; gap: 4px; }
-#gk2-teacher-panel form > label:has(input[type="checkbox"]) { display: flex; align-items: center; }
-#gk2-teacher-panel fieldset { display: grid; gap: 6px; max-height: 180px; overflow: auto; border: 1px solid #cbd5e1; border-radius: 8px; }
-#gk2-teacher-panel fieldset label { display: flex; align-items: baseline; gap: 8px; }
-.gk2-teacher-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; }
 .gk2-app .sidebar-bottom > .gk2-avatar-label:not([hidden]) { display: grid !important; }
 body:not([data-gk2-page="students"]) .gk2-topbar .gk2-roster-switch { display: none !important; }
 .gk2-navigation .gk2-topbar .gk2-roster-switch {
@@ -132,12 +126,3 @@ body:not([data-gk2-page="students"]) .gk2-topbar .gk2-roster-switch { display: n
 body:has(#view-students.active #gk2-teacher-panel:not([hidden])) #gk2-roster-quick-actions {
     display: none !important;
 }
-#gk2-teacher-panel { padding-block: 14px; }
-.gk2-teacher-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.gk2-teacher-toolbar input { flex: 1 1 220px; min-width: 0; max-width: 360px; }
-.gk2-teacher-row { padding: 12px 0; border-bottom: 1px solid #e1e7ef; }
-.gk2-teacher-row > div { min-width: 0; overflow-wrap: anywhere; }
-.gk2-teacher-row small { display: block; margin-top: 2px; color: #526079; }
-.gk2-teacher-row p { margin: 6px 0 0; }
-.gk2-teacher-empty { margin: 8px 0; color: #526079; }
-#gk2-teacher-panel form { max-width: 640px; }

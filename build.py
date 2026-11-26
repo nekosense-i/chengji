@@ -311,6 +311,7 @@ def build(destination):
     styles += '\n' + (ROOT / 'src/exam-dialog.css').read_text()
     styles += '\n' + (ROOT / 'src/release-account.css').read_text()
     styles += '\n' + (ROOT / 'src/release-settings.css').read_text()
+    styles += '\n' + (ROOT / 'src/release-teachers.css').read_text()
     for old, content in [(environment_path, environment), (foundation_path, foundation), (core_path, core), (features_path, features), (styles_path, styles)]:
         label = old.split('/')[-1].split('.')[0]
         new = f'assets/app/{label}.{hashlib.sha256(content.encode()).hexdigest()[:16]}{Path(old).suffix}'
