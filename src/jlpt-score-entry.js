@@ -44,7 +44,7 @@
         const official = templates[`jlpt:${level}`];
         const id = `jlpt-mock:${level}`;
         return templates[id] = {
-            id, level, name: `${level}试卷模板`,
+            id, level, name: `${level}试卷`,
             types: mockTypes(level, config.counts),
             assessmentRule: { ...official.assessmentRule, kind: 'jlpt-mock' }
         };
