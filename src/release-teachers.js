@@ -1,6 +1,6 @@
 (() => {
     const key = 'gk2_teacher_accounts_v1';
-    let feedbackTimer;
+    let feedbackTimer, sharedTeacher, sessionRead;
     function useSharedDirectory() {
         return location.hostname === 'chengji.nekosensei.cn' && !window.gk2ReleaseTest;
     }
@@ -73,9 +73,23 @@
     const session = (teacher, scope) => {
         const [campus, grade, classId] = JSON.parse(scope);
         return { mode: 'teacher', teacherId: teacher.id, version: teacher.version,
-            name: teacher.name, loginId: teacher.loginId, campus, grade, classId };
+            name: teacher.name, loginId: teacher.loginId, campus, grade, classId,
+            ...(teacher === sharedTeacher && { sharedDirectory: true }) };
     };
+    async function readSharedTeacher() {
+        const { user, classes } = await directoryRequest('roster');
+        if (user.role !== 'teacher' || !user.active) return null;
+        return {
+            ...user,
+            classes: Object.values(classes).map(({info}) => classKey(info.campus, info.grade, info.teachingClass))
+        };
+    }
+    function cloudScope(identity, teacher) {
+        const previous = classKey(identity?.campus, identity?.grade, identity?.classId);
+        return teacher.classes.includes(previous) ? previous : teacher.classes[0];
+    }
     function currentTeacher(identity) {
+        if (identity.sharedDirectory) return sharedTeacher?.id === identity.teacherId ? sharedTeacher : null;
         return read().find(teacher => teacher.id === identity.teacherId &&
             teacher.active && teacher.version === identity.version);
     }
@@ -100,7 +114,30 @@
             const scope = classKey(identity.campus, identity.grade, identity.classId);
             return teacher?.classes.includes(scope) ? session(teacher, scope) : null;
         },
-        signIn(id) {
+        async restoreSharedSession(identity) {
+            if (!useSharedDirectory() || !identity?.sharedDirectory) return;
+            if (!sessionRead) sessionRead = (async () => {
+                try {
+                    const live = await readSharedTeacher();
+                    sharedTeacher = live?.id === identity.teacherId ? live : null;
+                    const scope = sharedTeacher && cloudScope(identity, sharedTeacher);
+                    if (scope) return session(sharedTeacher, scope);
+                } catch (error) {
+                    if (error.status !== 401 && error.status !== 403) throw error;
+                    sharedTeacher = null;
+                }
+                return null;
+            })().finally(() => { sessionRead = null; });
+            return sessionRead;
+        },
+        async signIn(id) {
+            if (useSharedDirectory()) {
+                await directoryRequest('session', { role: 'teacher', loginId: normalize(id) });
+                sharedTeacher = await readSharedTeacher();
+                const scope = sharedTeacher && cloudScope(null, sharedTeacher);
+                if (!scope) throw Error('该账号暂无可用教学班，请联系管理员。');
+                return session(sharedTeacher, scope);
+            }
             const teacher = read().find(entry => entry.loginId === normalize(id) && entry.active);
             if (!teacher) return null;
             const scope = teacher.classes.find(value => availableClasses().has(value));
@@ -115,7 +152,9 @@
             const select = document.createElement('select');
             select.setAttribute('aria-label', '切换负责班级');
             for (const scope of teacher.classes) {
-                if (classes.has(scope)) select.add(new Option(classes.get(scope), scope));
+                if (classes.has(scope) || identity.sharedDirectory) {
+                    select.add(new Option(classes.get(scope) || JSON.parse(scope).join(' · '), scope));
+                }
             }
             if (select.options.length < 2) return;
             select.value = classKey(identity.campus, identity.grade, identity.classId);

@@ -164,7 +164,7 @@ window.gk2DismissibleDialog = function (dialog, label) {
             passwordField.hidden = !loginId.hidden;
             document.getElementById('auth-error').style.display = 'none';
             window.__gakutenUpdatePinyinStatus();
-            document.getElementById('auth-current-entry').textContent = loginId.hidden ? '管理员或原班级口令登录' : '本机教师账号';
+            document.getElementById('auth-current-entry').textContent = loginId.hidden ? '管理员或原班级口令登录' : (location.hostname === 'chengji.nekosensei.cn' && !testing ? '共用云端教师账号' : '本机教师账号');
             switchEntry.textContent = loginId.hidden ? '教师 ID 登录' : '返回口令登录';
             (loginId.hidden ? loginPassword : loginId).focus();
         };

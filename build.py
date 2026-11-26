@@ -64,9 +64,27 @@ def build(destination):
     foundation = foundation.replace("if (text) text.textContent = ready ?", "if (text) text.textContent = teacherEntry || ready ?", 1)
     foundation = foundation.replace('return parsed;', 'return window.gk2TeacherAccounts?.validateSession(parsed) ?? (parsed.teacherId ? null : parsed);', 1)
     foundation = foundation.replace("if (!window.pinyinPro && !await window.__gakutenLoadPinyin())", "const teacherField = document.getElementById('auth-teacher-id');\n                const teacherId = teacherField && !teacherField.hidden ? teacherField.value.trim() : null;\n                if (teacherId === '') { setErrorVisible(true, '请输入教师 ID。'); return false; }\n                if (!teacherId && !window.pinyinPro && !await window.__gakutenLoadPinyin())", 1)
-    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", "let auth;\n                try {\n                    auth = teacherId ? window.gk2TeacherAccounts.signIn(teacherId) : resolveAuthByPassword(input ? input.value : '');\n                } catch (error) {\n                    setErrorVisible(true, error.message);\n                    return false;\n                }", 1)
+    foundation = foundation.replace("const auth = resolveAuthByPassword(input ? input.value : '');", "let auth;\n                try {\n                    auth = teacherId ? await window.gk2TeacherAccounts.signIn(teacherId) : resolveAuthByPassword(input ? input.value : '');\n                } catch (error) {\n                    setErrorVisible(true, error.message);\n                    return false;\n                }", 1)
     foundation = foundation.replace("setErrorVisible(true, '账号或密码错误（请注意大小写）');", "setErrorVisible(true, teacherId ? '教师 ID 不存在或账号已停用。' : '账号或密码错误（请注意大小写）');", 1)
     foundation = foundation.replace('const doLogout = () => {', "const doLogout = async () => {\n                    await window.gk2TeacherAccounts?.disconnectDirectory().catch(() => {});\n                    if (window.gk2ReleaseTest) sessionStorage.setItem('gk2_logged_out', '1');", 1)
+    foundation = foundation.replace(
+        '            window.__gakutenLogin = login;',
+        '''            document.addEventListener('DOMContentLoaded', async () => {
+                try {
+                    const identity = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
+                    if (!identity?.sharedDirectory) return;
+                    const auth = await window.gk2TeacherAccounts.restoreSharedSession(identity);
+                    const stored = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
+                    if (!stored?.sharedDirectory || stored.teacherId !== identity.teacherId) return;
+                    if (auth) saveAuth(auth);
+                    else clearAuth();
+                    applyAuthToUI();
+                    window.app?.ui?.refresh?.();
+                } catch (error) {
+                    setErrorVisible(true, '暂时无法连接云端教师账号，请重试。');
+                }
+            });
+            window.__gakutenLogin = login;''', 1)
     foundation += '\n' + (ROOT / 'src/release-teachers.js').read_text()
 
     core_path = re.search(r'assets/app/core\.[a-f0-9]+\.js', html)[0]
