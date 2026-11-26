@@ -98,9 +98,14 @@ window.gk2DismissibleDialog = function (dialog, label) {
         }
         const rosterSwitch = document.querySelector('.gk2-roster-switch');
         const topbar = document.querySelector('.gk2-topbar');
-        const tools = document.getElementById('gk2-header-context');
+        const left = document.createElement('div');
+        left.className = 'gk2-topbar-left';
+        const right = document.createElement('div');
+        right.className = 'gk2-topbar-right';
         const rosterCommands = document.querySelector('.gk2-roster-heading');
-        topbar.insertBefore(rosterCommands, tools);
+        left.append(...topbar.querySelectorAll(':scope > :is(.gk2-current-exam-wrap,#gk2-topbar-scope-summary,#gk2-topbar-capsule-slot)'), rosterCommands);
+        right.append(document.getElementById('gk2-header-context'), document.getElementById('gk2-header-assistant-actions'));
+        topbar.append(left, right);
         const scopeButton = document.getElementById('gk2-bi-scope-toggle');
         function updateRosterScope() {
             const focus = window.app.store.state.globalFocus;
@@ -204,7 +209,7 @@ window.gk2DismissibleDialog = function (dialog, label) {
             banner.className = 'gk2-test-capsule';
             banner.innerHTML = '<strong>测试<span>模式</span></strong><button type="button" aria-label="返回正式模式">退出</button>';
             banner.querySelector('button').onclick = switchMode;
-            topbar.insertBefore(banner, rosterCommands);
+            left.append(banner);
         }
     });
 })();

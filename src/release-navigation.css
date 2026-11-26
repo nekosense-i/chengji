@@ -13,7 +13,7 @@ body.gk2-app.gk2-bi .gk2-sidebar .nav-menu > .nav-item > .gk2-icon {
     display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px;
     box-sizing: border-box; height: 34px; padding: 0 4px 0 8px; border-radius: 999px;
     background: #fff1d0; border: 1px solid #ead3a2; color: #734600; font-size: 12px; white-space: nowrap;
-    margin-left: auto;
+    margin: 0;
 }
 .gk2-test-capsule strong::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: 2px; background: #ad6c08; }
 .gk2-navigation .gk2-test-capsule button {
@@ -26,7 +26,6 @@ body.gk2-app.gk2-bi .gk2-sidebar .nav-menu > .nav-item > .gk2-icon {
 }
 .gk2-navigation .gk2-topbar #gk2-header-context,
 .gk2-navigation .gk2-topbar #gk2-header-assistant-actions { margin-left: 0 !important; flex: 0 0 auto !important; }
-.gk2-navigation .gk2-topbar:not(:has(.gk2-test-capsule)) #gk2-header-context { margin-left: auto !important; }
 .gk2-navigation .gk2-topbar-capsule-slot { min-width: 0 !important; flex: 0 1 auto !important; }
 .gk2-navigation.gk2-comfort .gk2-topbar :is(#gk2-details-capsule-tabs,#analysis-tabs-container,.gk2-roster-switch) {
     height: 36px !important; min-height: 36px !important; max-height: 36px !important;
@@ -58,16 +57,11 @@ body[data-gk2-page="students"] #gk2-bi-scope-toggle[data-roster-filter-active]::
 .gk2-navigation .gk2-topbar .gk2-roster-switch .analysis-tab[aria-pressed=true] { background: white; color: #2c4362; font-weight: 650; box-shadow: 0 1px 4px #304b7026; }
 .gk2-navigation .gk2-topbar .gk2-roster-heading button {
     flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; max-width: none !important;
-    height: 34px !important; min-height: 34px !important; border-radius: 8px !important;
+    height: 36px !important; min-height: 36px !important; border-radius: 999px !important;
     padding: 0 10px !important; font-size: 12px; white-space: nowrap;
 }
 .gk2-navigation .gk2-topbar :is(#gk2-roster-add,[data-teacher-add]) { background: var(--primary,#655bd3) !important; border: 1px solid var(--primary,#655bd3) !important; color: #fff !important; }
 .gk2-navigation .gk2-topbar #gk2-roster-import { background: #fff !important; color: #3e4c64 !important; border: 1px solid var(--border,#dbe2eb) !important; }
-.gk2-navigation .gk2-test-capsule::after,
-body[data-gk2-page="students"] .gk2-topbar .gk2-roster-heading::after {
-    content: ""; align-self: center; width: 1px; height: 18px; background: #dce2eb;
-}
-.gk2-navigation .gk2-test-capsule::after { margin-right: -12px; transform: translateX(3px); }
 #view-students .gk2-roster-group-label { display: inline-flex; align-items: center; gap: 5px; }
 #view-students .tree-table-wrapper :is(th,td):first-child {
     display: table-cell !important; position: static !important; width: 36px !important; min-width: 36px !important;
@@ -93,5 +87,47 @@ body[data-gk2-page="students"] .gk2-topbar .gk2-roster-heading::after {
 #view-students [data-teacher-classes] label input { width: 16px !important; height: 16px !important; margin: 0 !important; }
 @media(max-width: 740px) {
     .gk2-navigation.gk2-comfort .gk2-topbar { flex-wrap: wrap !important; }
-    .gk2-navigation .gk2-topbar-capsule-slot { flex-basis: 100% !important; }
+}
+
+.gk2-navigation .gk2-topbar {
+    --gk2-header-gap: 8px;
+    align-items: center;
+}
+.gk2-navigation .gk2-topbar :is(.gk2-topbar-left,.gk2-topbar-right) {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--gk2-header-gap);
+}
+.gk2-navigation .gk2-topbar-left { flex: 0 1 auto; }
+.gk2-navigation .gk2-topbar-right { flex: 0 0 auto; margin-inline-start: auto; }
+.gk2-navigation .gk2-topbar :is(#gk2-header-context,#gk2-header-assistant-actions,#gk2-entry-quick-actions,#gk2-roster-quick-actions,.gk2-roster-heading,#gk2-student-roster-commands) {
+    gap: var(--gk2-header-gap) !important;
+    margin-inline: 0 !important;
+}
+.gk2-navigation .gk2-topbar #gk2-header-context.gk2-context-empty { display: none !important; }
+.gk2-navigation .gk2-topbar :is(.gk2-current-exam-wrap,#gk2-topbar-scope-summary,#gk2-topbar-capsule-slot) {
+    order: 0 !important;
+    margin-inline: 0 !important;
+}
+.gk2-navigation.gk2-comfort .gk2-topbar :is(.gk2-current-exam-trigger,#gk2-topbar-scope-summary,.gk2-test-capsule) {
+    box-sizing: border-box;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    border-radius: 999px !important;
+}
+.gk2-navigation.gk2-comfort .gk2-topbar-right :is(#gk2-bi-scope-toggle,#gk2-bi-ai-toggle,#gk2-workspace-export,.gk2-entry-quick-action,#gk2-exam-operations>summary,#gk2-roster-quick-actions .gk2-roster-quick-action,.gk2-compact-search-trigger) {
+    border-radius: 50% !important;
+    margin-inline: 0 !important;
+}
+.gk2-navigation .gk2-topbar #gk2-entry-quick-actions #gk2-entry-delete-exam { order: 9; margin-inline-start: 0; }
+@media (max-width: 740px) {
+    .gk2-navigation .gk2-topbar-left { flex: 1 1 100%; flex-wrap: wrap; }
+    .gk2-navigation .gk2-topbar-left #gk2-topbar-scope-summary { flex: 0 1 auto; width: auto; }
+    .gk2-navigation .gk2-topbar-left #gk2-topbar-capsule-slot { flex: 0 1 auto !important; width: auto; max-width: 100%; }
+}
+.gk2-navigation.gk2-comfort .gk2-topbar-right #gk2-entry-quick-actions #gk2-exam-operations > summary {
+    width: 36px !important; min-width: 36px !important; max-width: 36px !important;
+    height: 36px !important; min-height: 36px !important; max-height: 36px !important;
 }

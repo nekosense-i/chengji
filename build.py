@@ -297,6 +297,8 @@ def build(destination):
 """, 1)
     features = features.replace("const tracks=[details,analysis].filter(Boolean);", "const roster=$('.gk2-roster-switch');if(roster)slot.append(roster);\n  const tracks=[details,analysis,roster].filter(Boolean);", 1)
     features = features.replace("function syncCapsuleTabs(page,ui){", "function syncCapsuleTabs(page,ui){\n  const roster=$('.gk2-roster-switch');if(roster)roster.hidden=page!=='students'||window.__gakutenAuth?.getAuth()?.mode!=='admin';", 1)
+    features = features.replace("top=$('.gk2-topbar'),scopeSummary=$('#gk2-topbar-scope-summary');",
+                                "top=$('.gk2-topbar-left')||$('.gk2-topbar'),scopeSummary=$('#gk2-topbar-scope-summary');", 1)
     sync_start = features.index('window.gk2OpenSyncStatus=function(){')
     sync_end = features.index("window.addEventListener('load',()=>{", sync_start)
     features = features[:sync_start] + (ROOT / 'src/release-sync-dialog.js').read_text() + '\n' + features[sync_end:]
