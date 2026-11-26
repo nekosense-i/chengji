@@ -150,7 +150,7 @@ window.gk2IconMarkup = function(name) {
                 <span>教学范围</span>
                 <button class="secondary btn--text-primary" onclick="window.app.ui.resetGlobalFocus()" title="重置选项">清空</button>
             </div>
-            <div id="auth-lock-note" class="auth-lock-note"><svg class="gk2-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3 M12 14v3"/></svg> 已由登录身份锁定校区、年级和班级</div>
+            <div id="auth-lock-note" class="auth-lock-note"><svg class="gk2-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3 M12 14v3"/></svg> 仅显示当前账号授权的范围</div>
             
             <div class="filter-group">
                 <span class="filter-label">1. 选择校区 (支持联考)</span>
@@ -291,7 +291,6 @@ window.gk2IconMarkup = function(name) {
                 <button type="button" class="secondary" data-roster-section="students" aria-pressed="true">学生名单</button>
                 <button type="button" class="secondary" data-roster-section="teachers" aria-pressed="false">教师与班级授权</button>
             </div>
-            <div id="gk2-roster-class-switch" class="content-body" hidden></div>
             <div class="content-body" id="tree-container-students"></div>
             <section id="gk2-teacher-panel" class="content-body teacher-auth-workspace" aria-label="教师与班级授权" hidden>
                 <section class="teacher-auth-card" aria-labelledby="teacher-auth-list-title">

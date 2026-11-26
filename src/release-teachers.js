@@ -145,6 +145,9 @@
             })().finally(() => { sessionRead = null; });
             return sessionRead;
         },
+        classScopes(identity) {
+            return currentTeacher(identity)?.classes || [];
+        },
         renderClasses(container, identity, showSingle = false) {
             container.replaceChildren();
             const teacher = identity.teacherId && currentTeacher(identity);
@@ -152,19 +155,27 @@
             const classes = availableClasses();
             const select = document.createElement('select');
             select.setAttribute('aria-label', '切换负责班级');
+            const roster = showSingle && window.app.ui.cur === 'students';
+            if (roster) select.add(new Option('全部负责班级',''));
             for (const scope of teacher.classes) {
                 if (classes.has(scope) || identity.sharedDirectory) {
                     select.add(new Option(classes.get(scope) || JSON.parse(scope).join(' · '), scope));
                 }
             }
             if (select.options.length < (showSingle ? 1 : 2)) return;
-            select.value = classKey(identity.campus, identity.grade, identity.classId);
+            select.value = roster ? window.app.ui.sharedRosterFilter || '' : classKey(identity.campus, identity.grade, identity.classId);
             select.onchange = () => {
+                if (roster) {
+                    window.app.ui.sharedRosterFilter = select.value;
+                    window.app.ui.renderStudents();
+                    return;
+                }
                 const latest = currentTeacher(identity);
                 if (!latest?.classes.includes(select.value)) return;
                 window.app.store.writeLocalState();
                 window.__gakutenAuth.saveAuth(session(latest, select.value));
-                location.reload();
+                window.__gakutenAuth.applyAuthToUI();
+                window.app.ui.refresh();
             };
             container.append(select);
         },

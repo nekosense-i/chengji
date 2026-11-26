@@ -61,7 +61,6 @@ window.gk2DismissibleDialog = function (dialog, label) {
             healthy: '已同步', pending: '待确认', paused: '仅本机', busy: '同步中', error: '异常'
         })[lamp.dataset.state] || '仅本机';
         dialog.querySelector('[data-account-id]').textContent = identity.loginId ? '教师 ID：' + identity.loginId : '';
-        window.gk2TeacherAccounts.renderClasses(dialog.querySelector('[data-account-classes]'), identity);
         dialog.showModal();
     };
 
@@ -75,7 +74,6 @@ window.gk2DismissibleDialog = function (dialog, label) {
                 <span class="gk2-account-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg></span>
                 <div><strong></strong><small data-account-scope></small><small data-account-id></small></div>
             </div>
-            <div data-account-classes></div>
             <div class="gk2-account-mode" hidden><span>测试模式 · 仅存本机</span><button type="button" class="secondary" data-gk2-test-toggle aria-label="退出测试模式"></button></div>
             <div class="gk2-account-menu">
                 <button type="button" data-account-teachers><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1m2-15a3 3 0 0 1 0 6m1 3a5 5 0 0 1 3 5v1"/></svg>教师管理</span><span aria-hidden="true">›</span></button>

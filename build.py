@@ -190,10 +190,22 @@ def build(destination):
     core = core.replace(class_filter, class_filter + '''
                     if (auth?.sharedDirectory) {
                         window.gk2TeacherAccounts.renderClasses(document.getElementById('sb-cls-panel'),auth,true);
-                        const rosterSwitch = document.getElementById('gk2-roster-class-switch');
-                        window.gk2TeacherAccounts.renderClasses(rosterSwitch,auth);
-                        rosterSwitch.hidden = !rosterSwitch.childElementCount;
                     }''',1)
+    roster_start = core.index('                renderStudents()')
+    roster_end = core.index('                    let html =',roster_start)
+    roster = core[roster_start:roster_end]
+    roster = roster.replace('                    const tree = {};','''                    const identity = this._getAuth();
+                    const sharedScopes = identity?.sharedDirectory
+                        ? window.gk2TeacherAccounts.classScopes(identity) : null;
+                    if (sharedScopes) window.gk2TeacherAccounts.renderClasses(document.getElementById('sb-cls-panel'),identity,true);
+                    const tree = {};''',1)
+    roster = roster.replace('                        if (focus.campuses.length > 0', '''                        if (sharedScopes) {
+                            const scope = JSON.stringify([cam,grd,tCls]);
+                            if (!sharedScopes.includes(scope) || this.sharedRosterFilter && this.sharedRosterFilter !== scope) return;
+                        } else {
+                        if (focus.campuses.length > 0''',1)
+    roster = roster.replace('                        if(!tree[cam])','                        }\n                        if(!tree[cam])',1)
+    core = core[:roster_start]+roster+core[roster_end:]
     anchor = '            return { Store, Sync, UI };'
     if core.count(anchor) != 1:
         raise RuntimeError('Production AppCore anchor changed')
@@ -421,6 +433,8 @@ def build(destination):
     features = features[:sync_start] + (ROOT / 'src/release-sync-dialog.js').read_text() + '\n' + features[sync_end:]
     features = features.replace("status.textContent=!sync.isEnabled()?", "status.dataset.state=sync.connectionStatus().state;status.textContent=!sync.isEnabled()?", 1)
     features += '\n' + (ROOT / 'src/jlpt-score-overview.js').read_text()
+    features = features.replace("if(head){head.style.pointerEvents=teacher?'none':'';head.style.opacity=teacher?'.68':'';head.setAttribute('aria-disabled',String(teacher));}",
+                                "if(head){const locked=teacher&&!auth()?.sharedDirectory;head.style.pointerEvents=locked?'none':'';head.style.opacity=locked?'.68':'';head.setAttribute('aria-disabled',String(locked));}",1)
     features += '\n' + (ROOT / 'src/release-account.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
