@@ -5,7 +5,7 @@
     const cell = ({studentId,examId,field,part}) => JSON.stringify([studentId,examId,field,part]);
     const sectionFields = ['details','questionCounts'];
     const plainFields = ['estimatedTotal','examAbsent'];
-    let inFlight, timer, conflict;
+    let inFlight, timer, conflict, lastCloudContent;
     const meter = {state:'busy',error:'',lastPushedAt:0};
 
     function edits(before, after) {
@@ -164,8 +164,11 @@
                 snapshot = readSnapshot(body.snapshot);
             }
             if (identity()?.teacherId !== auth.teacherId || JSON.stringify(store.state.data.scores) !== fingerprint) return;
+            const cloudContent = JSON.stringify(snapshot.data);
             snapshot.data.examTemplates = snapshot.data.examTemplates.concat(store.state.personalExamTemplates?.templates || []);
-            const dataChanged = JSON.stringify(data) !== JSON.stringify(snapshot.data);
+            const dataChanged = lastCloudContent === undefined
+                ? JSON.stringify(data) !== JSON.stringify(snapshot.data)
+                : cloudContent !== lastCloudContent;
             const previousHeld = store.state.sharedTeacherHeldChanges;
             store.state.sharedTeacherHeldChanges = heldChanges;
             store.state.data = snapshot.data;
@@ -178,6 +181,7 @@
                 store.state.sharedTeacherHeldChanges = previousHeld;
                 throw error;
             }
+            lastCloudContent = cloudContent;
             store.pendingDelta = null;
             store._syncInFlight = null;
             store.lastLocalDataSnapshot = store.cloneSyncState();
