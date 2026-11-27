@@ -412,6 +412,28 @@ def build(destination):
     core = core[:start] + core[start:end].replace('正确题数', '题数') + core[end:]
     core = core.replace("Number(row.querySelector('.qs')?.value)", "this._readExamQuestionMax(row.querySelector('.qs'))")
     core = core.replace("row.querySelector('.q-count')?.value || ''", "row.querySelector('.q-count')?.dataset.manualCount || row.querySelector('.q-count')?.value || ''")
+    class_header_anchor = '                    const isSingleClassRoster = sortedGroups.length === 1;'
+    if core.count(class_header_anchor) != 1:
+        raise RuntimeError('Production class header score availability anchor changed')
+    core = core.replace(class_header_anchor, '''                    const studentsById = new Map(this.store.state.data.students.map(student => [student.id, student]));
+                    const classesWithScores = new Set();
+                    this.store.state.data.scores.forEach(record => {
+                        if (record.examId !== eid) return;
+                        const student = studentsById.get(record.studentId);
+                        if (!student) return;
+                        const position = Utils.getClassForExam(student, exam);
+                        classesWithScores.add(`${position.campus} - ${position.teachingClass}`);
+                    });
+''' + class_header_anchor, 1)
+    class_students_anchor = '                        const students = groupData.students;'
+    if core.count(class_students_anchor) != 1:
+        raise RuntimeError('Production class header roster anchor changed')
+    core = core.replace(class_students_anchor, class_students_anchor + '\n                        const hasClearableData = classesWithScores.has(clsKey);', 1)
+    old_clear_button = '''<button class="danger btn--danger-outline" onclick="event.preventDefault(); window.app.ui.deleteExamClass('${eid}', '${Utils.escapeHTML(campus)}', '${Utils.escapeHTML(cls)}')">清空本班数据</button>'''
+    new_clear_button = '''<span class="gk2-entry-clear-wrap" title="${hasClearableData ? '' : '当前暂无可清空的数据'}"><button type="button" class="gk2-entry-class-clear" ${hasClearableData ? '' : 'disabled'} onclick="event.preventDefault(); window.app.ui.deleteExamClass('${eid}', '${Utils.escapeHTML(campus)}', '${Utils.escapeHTML(cls)}')">${window.gk2IconMarkup('trash')}<span>清空本班数据</span></button></span>'''
+    if core.count(old_clear_button) != 1:
+        raise RuntimeError('Production class clear button anchor changed')
+    core = core.replace(old_clear_button, new_clear_button, 1)
     core = add_disclosure_core(core)
     core = core.replace(
         '            return { Store, Sync, UI };',
@@ -456,6 +478,15 @@ def build(destination):
     core = core.replace(total_anchor, '  this._mergeDerivedTotal(a,b,out);\n' + total_anchor, 1)
     features_path = re.search(r'assets/app/features\.[a-f0-9]+\.js', html)[0]
     features = (ROOT / features_path).read_text()
+    entry_labels_anchor = "const labels=[['已录入','已录入','is-entered']"
+    if features.count(entry_labels_anchor) != 1:
+        raise RuntimeError('Production class clear state anchor changed')
+    features = features.replace(entry_labels_anchor, '''const studentsById=new Map(ui.store.state.data.students.map(student=>[student.id,student])),clearableClasses=new Set();ui.store.state.data.scores.forEach(record=>{if(record.examId!==ex.id)return;const student=studentsById.get(record.studentId);if(!student)return;const position=classAt(student,ex);clearableClasses.add(JSON.stringify([String(position.campus??''),String(position.teachingClass??'')]))});''' + entry_labels_anchor, 1)
+    old_entry_status_update = "const counts=byClass.get(JSON.stringify([group.dataset.campus||'',group.dataset.teachingClass||'']))||{},status=group.querySelector('[data-gk2-entry-class-stats]');if(!status)return;"
+    new_entry_status_update = "const key=JSON.stringify([group.dataset.campus||'',group.dataset.teachingClass||'']),counts=byClass.get(key)||{},status=group.querySelector('[data-gk2-entry-class-stats]'),clearButton=group.querySelector('.gk2-entry-class-clear'),clearWrap=group.querySelector('.gk2-entry-clear-wrap'),hasClearableData=clearableClasses.has(key);if(clearButton)clearButton.disabled=!hasClearableData;if(clearWrap)clearWrap.title=hasClearableData?'':'当前暂无可清空的数据';if(!status)return;"
+    if features.count(old_entry_status_update) != 1:
+        raise RuntimeError('Production class clear status update anchor changed')
+    features = features.replace(old_entry_status_update, new_entry_status_update, 1)
     teacher_match = "const teacherMatch=s=>{const a=auth();return a?.mode!=='teacher'||(s.campus===a.campus&&s.grade===a.grade&&s.teachingClass===a.classId);};"
     if features.count(teacher_match) != 1:
         raise RuntimeError('Teacher detail scope anchor changed')
