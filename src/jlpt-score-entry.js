@@ -67,13 +67,19 @@
         if (!rule) return null;
         if (!record) return { status: '未录入', complete: false, sectionPass: false, passed: false, failures: [] };
         if (record.examAbsent) return { status: '缺考', complete: false, sectionPass: false, passed: false, failures: [] };
+        const statusFor = passed => rule.kind === 'jlpt-official'
+            ? (passed ? '合格' : '未合格')
+            : (passed ? '模拟参考达线' : '模拟参考未达线');
         if (rule.kind === 'jlpt-mock') {
             const counts = exam.types.map(t => t.questionCount);
             const correct = exam.types.map(t => record.questionCounts?.[t.name]);
             const result = mock.evaluate(rule.level, counts, correct);
             if (result?.complete && exam.types.every((type, i) => Math.abs(record.details?.[type.name] - correct[i] * type.max / counts[i]) < 0.005001)) {
                 const failures = result.sections.filter(section => section.score < section.minimum).map(section => section.name);
-                return { ...result, failures, sectionPass: !failures.length, totalPass: result.total >= rule.passTotal };
+                const sectionPass = failures.length === 0;
+                const totalPass = result.total >= rule.passTotal;
+                const passed = sectionPass && totalPass;
+                return { ...result, status: statusFor(passed), failures, sectionPass, totalPass, passed };
             }
         }
         const sections = Object.entries(rule.sectionPassMarks || {});
@@ -93,7 +99,7 @@
         const total = scores.reduce((sum, section) => sum + section.value, 0);
         const sectionPass = failures.length === 0;
         const passed = sectionPass && total >= rule.passTotal;
-        return { status: rule.kind === 'jlpt-official' ? (passed ? '合格' : '未合格') : (passed ? '模拟参考达线' : '模拟参考未达线'), complete, sectionPass, passed, failures, total, totalPass: total >= rule.passTotal };
+        return { status: statusFor(passed), complete, sectionPass, passed, failures, total, totalPass: total >= rule.passTotal };
     }
 
     const api = Object.freeze({ templates, templateFor, ruleForExam, sameRule, sameTypes, evaluate });

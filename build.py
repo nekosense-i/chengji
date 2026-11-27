@@ -41,6 +41,52 @@ def add_disclosure_features(features):
     return features
 
 
+def add_jlpt_analysis_export(core):
+    start = core.index('                exportDetailTableExcel() {')
+    end = core.index('                _setAnalysisTableFillMode(', start)
+    export = core[start:end]
+    replacements = [
+        (
+            'const exam = this.analysisCache.exam;',
+            '''const exam = this.analysisCache.exam;
+                    const jlptRule = window.gk2JLPT.ruleForExam(exam);
+                    const jlptLabel = jlptRule?.kind === 'jlpt-official' ? '官方合格' : '模拟参考达线';''',
+        ),
+        (
+            '<table class="score-table">`;',
+            '''${jlptRule ? `<p class="meta">JLPT ${esc(jlptRule.level)} ${jlptLabel}须满足总分 ≥ ${jlptRule.passTotal}，且各成绩项均达基准。</p>` : ''}
+                    <table class="score-table">`;''',
+        ),
+        (
+            '// 填充学生行数据（并应用颜色判据）',
+            '''let jlptPassCount = 0;
+                    // 填充学生行数据（并应用颜色判据）''',
+        ),
+        (
+            "if (d.total >= excLine) { status = '优秀'; statusClass = 'status-excellent'; }",
+            '''if (jlptRule) {
+                            const result = window.gk2JLPT.evaluate(this.store.getScore(d.id, exam.id) || d, exam);
+                            status = result.status;
+                            statusClass = result.passed ? 'status-pass' : result.complete ? 'status-risk' : 'muted';
+                            if (result.passed) jlptPassCount++;
+                        } else if (d.total >= excLine) { status = '优秀'; statusClass = 'status-excellent'; }''',
+        ),
+        (
+            'const overallStatus = targetDiffAvgNum === null',
+            'const overallStatus = jlptRule ? `${jlptPassCount}/${pool.length} 人${jlptLabel}` : targetDiffAvgNum === null',
+        ),
+        (
+            "const overallStatusClass = targetDiffAvgNum === null",
+            "const overallStatusClass = jlptRule ? '' : targetDiffAvgNum === null",
+        ),
+    ]
+    for old, new in replacements:
+        if export.count(old) != 1:
+            raise RuntimeError('JLPT analysis export anchor changed: ' + old[:70])
+        export = export.replace(old, new)
+    return core[:start] + export + core[end:]
+
+
 def build(destination):
     html = (ROOT / 'src/release/Gakuten-2.0.base.html').read_text()
     generated = {}
@@ -149,6 +195,7 @@ def build(destination):
 
     core_path = re.search(r'assets/app/core\.[a-f0-9]+\.js', html)[0]
     core = (ROOT / core_path).read_text()
+    core = add_jlpt_analysis_export(core)
     core = core.replace("this.KEY = 'gakuten_data_v1';",
                         "this.KEY = window.gk2TeacherWorkspaceId ? 'gakuten_teacher_data:'+window.gk2TeacherWorkspaceId : 'gakuten_data_v1';",1)
     core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.gk2TeacherWorkspaceId && (!window.gk2TeacherAccounts?.sharedDirectoryAvailable() || window.__gakutenAuth?.getAuth()?.cloudAdmin) && !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
@@ -322,11 +369,6 @@ def build(destination):
     core = core.replace("if (forceLatest && validExams.length > 0)", "if (this._getAuth()?.sharedDirectory && this._teacherHomeScope !== JSON.stringify([this._getAuth().campus,this._getAuth().grade,this._getAuth().classId]) && validExams.length) {\n        this._teacherHomeScope=JSON.stringify([this._getAuth().campus,this._getAuth().grade,this._getAuth().classId]);\n        sel.value=validExams[0].id;\n    } else if (forceLatest && validExams.length > 0)",1)
     core = core.replace('!focus.grades.includes(student.grade)) return false;',
                         '!focus.grades.includes(classAtExam.grade || student.grade)) return false;',1)
-    core = core.replace("                    // Keep grade and score data unchanged;",'''                    if (this._getAuth()?.mode === 'admin' &&
-                        document.getElementById('gk2-exam-teacher-entry').value === 'archived' && !exam.sharedParticipants) {
-                        return Utils.msg('请先补齐该考试的参试范围，再归档。','error');
-                    }
-                    // Keep grade and score data unchanged;''',1)
     dropdown_start = core.index("                initGlobalExamsDropdown(")
     dropdown_end = core.index("                onGlobalExamChange()",dropdown_start)
     dropdown = core[dropdown_start:dropdown_end]
@@ -353,15 +395,6 @@ def build(destination):
       JSON.stringify(merged.data[k])===JSON.stringify(remote.data[k]) &&
       JSON.stringify(merged.deleted[k]||{})===JSON.stringify(remote.deleted[k]||{}));
     const ack=dataUnchanged ? remote : await this.postCloud(merged,d);''',1)
-    basic_save = "                    exam.campus = allCampuses ? '' : campuses[0];"
-    if core.count(basic_save) != 1:
-        raise RuntimeError('Exam basic info save anchor changed')
-    core = core.replace(basic_save, basic_save + '''
-                    if (this._getAuth()?.mode === 'admin') {
-                        const status = document.getElementById('gk2-exam-teacher-entry').value;
-                        exam.entryClosed = status !== 'open';
-                        if (status === 'archived') exam.archivedAt ||= Date.now();
-                    }''',1)
     if 'if(cache.pool)cache.pool=cache.pool.filter(row=>P.student(row));' in core:
         core = core.replace('row=>P.student(row));','row=>cache.exam?.teacherParticipants ? P.studentForExam(row,cache.exam) : P.student(row));',3)
     core = core.replace('currentExam.grade = g;', 'currentExam.grade = g;\n                        if (classScope) currentExam.classScope = classScope;')
@@ -493,6 +526,15 @@ def build(destination):
     core = core.replace(total_anchor, '  this._mergeDerivedTotal(a,b,out);\n' + total_anchor, 1)
     features_path = re.search(r'assets/app/features\.[a-f0-9]+\.js', html)[0]
     features = (ROOT / features_path).read_text()
+    class_labels = "interval:0,hideOverlap:false,...(isBox?{formatter:value=>value==='年级整体'?value:String(value).replace(' · ','\\n')}:{})"
+    if features.count(class_labels) != 1:
+        raise RuntimeError('Class comparison label anchor changed')
+    features = features.replace(class_labels,
+        "interval:0,hideOverlap:true,formatter:value=>String(value).replace(' · ','\\n')", 1)
+    features = re.sub(
+        r"(if\(id==='chart-ov-avg'\)c\.setOption\([^\n]*?axisLabel:\{[^\n]*?)hideOverlap:false",
+        r"\g<1>hideOverlap:true", features,
+    )
     entry_switch = "if(this.cur==='exams'){G.entryExamId=this.store.state.currentExamId;G.entry(true);}G.syncShell();"
     if features.count(entry_switch) != 1:
         raise RuntimeError('Exam entry switch anchor changed')

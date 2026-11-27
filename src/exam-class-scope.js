@@ -425,10 +425,6 @@
         const exam = this.store.state.data.exams.find(e => e.id === id);
         if (!exam || !this._examVisible(exam)) return;
         const isAdmin = this._getAuth()?.mode === 'admin';
-        document.getElementById('gk2-exam-teacher-entry-field').hidden = !isAdmin;
-        const status = document.getElementById('gk2-exam-teacher-entry');
-        status.value = exam.archivedAt ? 'archived' : 'open';
-        status.disabled = !!exam.archivedAt;
         const result = openBasic.call(this, id);
         for (const input of document.querySelectorAll('#modal-exam-basic-info input:not([type=hidden])')) {
             if (exam.archivedAt) input.disabled = true;
