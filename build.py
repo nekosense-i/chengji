@@ -420,6 +420,14 @@ def build(destination):
     core = core.replace(total_anchor, '  this._mergeDerivedTotal(a,b,out);\n' + total_anchor, 1)
     features_path = re.search(r'assets/app/features\.[a-f0-9]+\.js', html)[0]
     features = (ROOT / features_path).read_text()
+    teacher_overview = "const roster=ex=>scopedStudents(ex).filter(teacherMatch);"
+    if features.count(teacher_overview) != 1:
+        raise RuntimeError('Overview teacher scope anchor changed')
+    features = features.replace(teacher_overview, "const roster=ex=>scopedStudents(ex).filter(s=>auth()?.sharedDirectory ? window.gk2Policy.studentForExam(s,ex) : teacherMatch(s));", 1)
+    grade_scope = "s.grade!==exam.grade||!teacherMatch(s)||!window.gk2Policy.studentForExam(s,exam)"
+    if features.count(grade_scope) != 1:
+        raise RuntimeError('Overview grade scope anchor changed')
+    features = features.replace(grade_scope, "s.grade!==exam.grade||(!auth()?.sharedDirectory&&!teacherMatch(s))||!window.gk2Policy.studentForExam(s,exam)", 1)
     replacements = {
         "const state=!sync.isEnabled()?'paused':navigator.onLine===false?'error':sync._lampActive?'busy':sync._lampState||'busy';": "const state=sync.connectionStatus().state;",
         "const toggle=button(sync.isEnabled()?": "const toggle=window.gk2ReleaseTest || window.__gakutenAuth?.getAuth()?.teacherId ? null : button(sync.isEnabled()?",
