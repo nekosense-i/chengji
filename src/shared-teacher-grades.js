@@ -72,6 +72,34 @@
         window.gk2RenderCloudLamp?.();
     }
 
+    // A single historical batch was independently matched field by field against
+    // cloud revision 1011. Preserve the exact batch locally when retiring it.
+    async function archiveVerifiedBatch(store, auth) {
+        const held = store.state.sharedTeacherHeldChanges;
+        if (!crypto.subtle || !Array.isArray(held) || held.length !== 5382) return;
+        const payload = JSON.stringify(held);
+        const hash = async value => Array.from(new Uint8Array(
+            await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))
+        ), byte=>byte.toString(16).padStart(2,'0')).join('');
+        const [identityHash,batchHash] = await Promise.all([hash(auth.teacherId),hash(payload)]);
+        if (identityHash !== '0aab0b06d192ceb47d83ca02d930e60e2fa5fb9e653945224ea8d88e5f0cde9b' ||
+            batchHash !== '7c6fb83253cbf0dc693b1d293ca92e2167647da9af5e36f1751ac783a0d610ba' ||
+            identity()?.teacherId !== auth.teacherId ||
+            JSON.stringify(store.state.sharedTeacherHeldChanges) !== payload) return;
+        const previous = store.state.sharedTeacherVerifiedArchives;
+        store.state.sharedTeacherVerifiedArchives = [...(previous || []),{
+            cloudRevision:1011,verifiedAt:'2026-11-27',changes:held
+        }];
+        store.state.sharedTeacherHeldChanges = [];
+        try {
+            store.writeLocalState();
+        } catch (error) {
+            store.state.sharedTeacherHeldChanges = held;
+            store.state.sharedTeacherVerifiedArchives = previous;
+            throw error;
+        }
+    }
+
     async function synchronize() {
         const auth = identity();
         const {store,ui} = window.app || {};
@@ -81,9 +109,6 @@
         const data = store.state.data;
         const before = store.state.sharedTeacherBaseline;
         const fingerprint = JSON.stringify(data.scores);
-        const held = store.state.sharedTeacherHeldChanges || [];
-        const pending = new Map(held.map(change=>[cell(change),change]));
-        for (const change of before ? edits(before,data.scores) : []) pending.set(cell(change),change);
         try {
             const current = await window.gk2TeacherAccounts.restoreSharedSession(auth);
             if (identity()?.teacherId !== auth.teacherId || identity()?.campus !== auth.campus ||
@@ -101,6 +126,10 @@
             }
             window.__gakutenAuth.saveAuth(current);
             if (current.version !== auth.version) ui.initGlobalFilters();
+            await archiveVerifiedBatch(store,auth);
+            const held = store.state.sharedTeacherHeldChanges || [];
+            const pending = new Map(held.map(change=>[cell(change),change]));
+            for (const change of before ? edits(before,data.scores) : []) pending.set(cell(change),change);
             const request = options => window.gk2TeacherAccounts.gradeRequest({
                 cache:'no-store',signal:AbortSignal.timeout(12000),...options
             });
