@@ -13,6 +13,32 @@
         return !!group && !!place && place.campus===group.campus && place.grade===group.grade &&
             place.teachingCategory===group.teachingCategory;
     }
+    UI.prototype.sharedExamClassChoices = function (auth) {
+        if (!['analysis','details','workbench'].includes(this.cur)) return null;
+        const exam = this.store.state.data.exams.find(item=>item.id===this.store.state.currentExamId);
+        const group = currentTeachingGroup(exam,auth);
+        if (!group) return null;
+        const rows = Object.values(exam.teacherParticipants).filter(place=>place.campus===group.campus &&
+            place.grade===group.grade && place.teachingCategory===group.teachingCategory);
+        return {examId:exam.id,classes:[...new Set(rows.map(row=>row.teachingClass))]};
+    };
+    const matchFocus = UI.prototype._studentMatchesFocusForExam;
+    UI.prototype._studentMatchesFocusForExam = function (student,exam,focus = this.store.state.globalFocus || {}) {
+        const selected = this.sharedExamClassFilter;
+        if (exam?.id && exam.id===selected?.examId && currentTeachingGroup(exam,this._getAuth())) {
+            return !!student && matchFocus.call(this,student,exam,{
+                ...focus,grades:[],tClasses:selected.className ? [selected.className] : []
+            });
+        }
+        return matchFocus.call(this,student,exam,focus);
+    };
+    const examChange = UI.prototype.onGlobalExamChange;
+    UI.prototype.onGlobalExamChange = function (...args) {
+        const result = examChange.apply(this,args);
+        const auth = this._getAuth();
+        if (auth?.sharedDirectory) window.gk2TeacherAccounts.renderClasses(document.getElementById('sb-cls-panel'),auth,true);
+        return result;
+    };
     const oldCanRead = Utils.canReadStudent;
     Utils.canReadStudent = function (student,exam) {
         const auth = window.__gakutenAuth?.getAuth();

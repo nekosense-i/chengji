@@ -279,6 +279,8 @@ def build(destination):
                     if (this._getAuth()?.mode === 'admin') {
                         exam.entryClosed = document.getElementById('gk2-exam-teacher-entry').value === 'closed';
                     }''',1)
+    if 'if(cache.pool)cache.pool=cache.pool.filter(row=>P.student(row));' in core:
+        core = core.replace('row=>P.student(row));','row=>cache.exam?.teacherParticipants ? P.studentForExam(row,cache.exam) : P.student(row));',3)
     core = core.replace('currentExam.grade = g;', 'currentExam.grade = g;\n                        if (classScope) currentExam.classScope = classScope;')
     core = core.replace('let exam = this.store.state.data.exams.find(e => e.name === n && e.grade === g);',
         'let exam = this.store.state.data.exams.find(e => e.name === n && e.grade === g && !e.classScope && !e.assessmentRule && this._getAuth()?.mode !== \'teacher\');')

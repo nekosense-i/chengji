@@ -154,9 +154,34 @@
             if (!teacher) return;
             const classes = availableClasses();
             const roster = showSingle && window.app.ui.cur === 'students';
+            const ui = window.app.ui;
+            const examView = showSingle && ui.sharedExamClassChoices?.(identity);
+            if (examView) {
+                const filter = ui.sharedExamClassFilter;
+                const selected = filter?.examId === examView.examId ? filter.className : identity.classId;
+                for (const name of ['', ...examView.classes]) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'ms-item gk2-assigned-class-option';
+                    button.textContent = name || '同组全部参试班';
+                    button.setAttribute('aria-pressed',String(name===selected));
+                    button.onclick = () => {
+                        ui.sharedExamClassFilter = {examId:examView.examId,className:name};
+                        ui.refresh();
+                    };
+                    container.append(button);
+                }
+                if (teacher.classes.length === 1) return;
+            }
             const scopes = teacher.classes.filter(scope=>classes.has(scope) || identity.sharedDirectory);
             if (scopes.length < (showSingle ? 1 : 2)) return;
             const selected = roster ? window.app.ui.sharedRosterFilter || '' : classKey(identity.campus, identity.grade, identity.classId);
+            if (examView) {
+                const heading = document.createElement('div');
+                heading.className = 'field-label';
+                heading.textContent = '切换负责班级';
+                container.append(heading);
+            }
             for (const scope of roster ? ['', ...scopes] : scopes) {
                 const button = document.createElement('button');
                 button.type = 'button';
@@ -171,6 +196,7 @@
                         window.app.ui.renderStudents();
                         return;
                     }
+                    ui.sharedExamClassFilter = null;
                     window.app.store.writeLocalState();
                     window.__gakutenAuth.saveAuth(session(latest, scope));
                     window.__gakutenAuth.applyAuthToUI();
