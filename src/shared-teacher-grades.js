@@ -195,7 +195,6 @@
             if (identity()?.teacherId !== auth.teacherId || JSON.stringify(store.state.data.scores) !== fingerprint) return;
             const cloudContent = JSON.stringify(snapshot.data);
             ui.teacherExamClasses = snapshot.examClasses || [];
-            ui.teacherTrashedExams = snapshot.trashedExams || [];
             snapshot.data.examTemplates = snapshot.data.examTemplates.concat(store.state.personalExamTemplates?.templates || []);
             const dataChanged = lastCloudContent === undefined
                 ? JSON.stringify(data) !== JSON.stringify(snapshot.data)
@@ -250,9 +249,10 @@
         if (!identity()?.sharedDirectory) return deleteExam.call(this,id);
         const exam = this.store.state.data.exams.find(row=>row.id===id);
         if (!exam) return;
+        if (exam.archivedAt) return Utils.msg('已归档考试不能删除','error');
         const scoreCount = this.store.state.data.scores.filter(row=>row.examId===id).length;
-        this.showConfirmDialog(`将「${exam.name}」及其 ${scoreCount} 条成绩移入考试回收站，可恢复。`,()=>
-            this.submitTeacherExamChange({action:'trash-exam',examId:id,expectedVersion:exam._ts}),'移入回收站');
+        this.showConfirmDialog(`将「${exam.name}」及其 ${scoreCount} 条成绩删除。删除结果会同步到其他设备。`,()=>
+            this.submitTeacherExamChange({action:'delete-exam',examId:id,expectedVersion:exam._ts}),'确认删除');
     };
     const saveExamBasicInfo = UI.prototype.saveExamBasicInfo;
     UI.prototype.saveExamBasicInfo = function () {
@@ -268,38 +268,6 @@
             exam:{name,date,classIds,types:exam.types,assessmentRule:exam.assessmentRule}},
             document.getElementById('modal-exam-basic-info'));
     };
-    UI.prototype.openTeacherExamTrash = function () {
-        const dialog = document.createElement('dialog');
-        dialog.className = 'dialog-shell dialog--md';
-        const title = document.createElement('h2');
-        title.textContent = '考试回收站';
-        const close = document.createElement('button');
-        close.textContent = '关闭';
-        close.onclick = ()=>dialog.close();
-        dialog.append(title);
-        for (const exam of this.teacherTrashedExams || []) {
-            const row = document.createElement('p');
-            const button = document.createElement('button');
-            button.textContent = '恢复';
-            button.onclick = ()=>this.submitTeacherExamChange({
-                action:'restore-exam',examId:exam.id,expectedVersion:exam._ts
-            },dialog);
-            row.append(document.createTextNode(`${exam.grade} · ${exam.name} · ${exam.date} `),button);
-            dialog.append(row);
-        }
-        if (!this.teacherTrashedExams?.length) dialog.append('暂无已删除考试。');
-        dialog.append(close);
-        dialog.addEventListener('close',()=>dialog.remove(),{once:true});
-        document.body.append(dialog);
-        dialog.showModal();
-    };
-    document.addEventListener('DOMContentLoaded',()=>{
-        const button = document.createElement('button');
-        button.className = 'secondary btn--compact';
-        button.textContent = '考试回收站';
-        button.onclick = ()=>window.app.ui.openTeacherExamTrash();
-        document.querySelector('#view-exams .top-actions')?.append(button);
-    },{once:true});
     UI.prototype.submitTeacherExamChange = async function (request, dialog) {
         if (this.teacherExamSaving) return;
         this.teacherExamSaving = true;
@@ -316,7 +284,7 @@
                 throw Error(result.error || '考试保存失败');
             }
             dialog?.close();
-            Utils.msg('考试更新已由云端确认');
+            Utils.msg(request.action==='delete-exam' ? '考试已删除' : '考试更新已由云端确认');
             await synchronize();
         } catch (error) {
             Utils.msg(error.message,'error');
