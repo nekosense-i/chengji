@@ -60,6 +60,7 @@ window.gk2OpenSyncStatus = function () {
             ['云同步', enabled ? '已开启' : '已关闭 · 仅本机保存', state],
             ['本机保存', localStatus, store._syncLocalError ? 'error' : 'healthy'],
             ['待上传操作', count + ' 项', count ? 'pending' : 'neutral'],
+            ...(teacher?.held ? [['暂留本机', teacher.held + ' 项 · 超出当前登分范围，授权恢复后自动核对', 'pending']] : []),
             ['最近上传确认', lastPushedAt ? new Date(lastPushedAt).toLocaleString() : '暂无', 'neutral'],
             ['同步结果', lastError || (state === 'busy' ? '正在等待云端确认' : count ? '本机修改等待上传' : '无错误'), lastError ? 'error' : 'healthy']
         ];
