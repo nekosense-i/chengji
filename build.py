@@ -79,6 +79,11 @@ def build(destination):
           (['GET','POST'].includes(method) || method==='DELETE' && url.pathname.endsWith('/session')) ||
       url.pathname==='/gakuten-teacher-grades' && ['GET','POST'].includes(method)
   )) return nativeFetch(input,{...options,redirect:'error',credentials:'same-origin'});''',1)
+    environment = environment.replace("  if (url.origin===location.origin", '''  if (url.origin==='https://chengji.nekosensei.cn' && url.pathname==='/gakuten-admin-grades' &&
+      (location.protocol==='file:' || url.origin===location.origin) && ['GET','POST'].includes(method)) {
+    return nativeFetch(input,{...options,redirect:'error',credentials:location.protocol==='file:'?'omit':'same-origin'});
+  }
+  if (url.origin===location.origin''',1)
     environment = environment.replace("isolated:false,mode:'original-cloud'", "isolated:testMode,mode:testMode?'release-test':'original-cloud'", 1)
     environment = environment.replace("if(v.startsWith('demo-'))", "if(!window.gk2ReleaseTest && v.startsWith('demo-'))", 1)
     environment += '\nif (window.gk2ReleaseTest) {\n' + (ROOT / 'src/demo.js').read_text() + '\n}\n'
@@ -275,12 +280,22 @@ def build(destination):
     core = core.replace('const targetExam = this.store.state.data.exams.find', '''const chosenClasses = this._readExamClassScope('me');
                     const classScope = this._getAuth()?.mode === 'teacher' ? currentExam.classScope : chosenClasses.length ? chosenClasses : currentExam.classScope;
                     const targetExam = this.store.state.data.exams.find''')
+    core = core.replace("if (forceLatest && validExams.length > 0)", "if (this._getAuth()?.sharedDirectory && this._teacherHomeScope !== JSON.stringify([this._getAuth().campus,this._getAuth().grade,this._getAuth().classId]) && validExams.length) {\n        this._teacherHomeScope=JSON.stringify([this._getAuth().campus,this._getAuth().grade,this._getAuth().classId]);\n        sel.value=validExams[0].id;\n    } else if (forceLatest && validExams.length > 0)",1)
+    core = core.replace('!focus.grades.includes(student.grade)) return false;',
+                        '!focus.grades.includes(classAtExam.grade || student.grade)) return false;',1)
+    core = core.replace("                    // Keep grade and score data unchanged;",'''                    if (this._getAuth()?.mode === 'admin' &&
+                        document.getElementById('gk2-exam-teacher-entry').value === 'archived' && !exam.sharedParticipants) {
+                        return Utils.msg('请先补齐该考试的参试范围，再归档。','error');
+                    }
+                    // Keep grade and score data unchanged;''',1)
     basic_save = "                    exam.campus = allCampuses ? '' : campuses[0];"
     if core.count(basic_save) != 1:
         raise RuntimeError('Exam basic info save anchor changed')
     core = core.replace(basic_save, basic_save + '''
                     if (this._getAuth()?.mode === 'admin') {
-                        exam.entryClosed = document.getElementById('gk2-exam-teacher-entry').value === 'closed';
+                        const status = document.getElementById('gk2-exam-teacher-entry').value;
+                        exam.entryClosed = status !== 'open';
+                        if (status === 'archived') exam.archivedAt ||= Date.now();
                     }''',1)
     if 'if(cache.pool)cache.pool=cache.pool.filter(row=>P.student(row));' in core:
         core = core.replace('row=>P.student(row));','row=>cache.exam?.teacherParticipants ? P.studentForExam(row,cache.exam) : P.student(row));',3)

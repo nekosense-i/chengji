@@ -122,7 +122,7 @@
             const next = { ...previous, ...profile, id };
             next.sharedClassId = groups.get(scopeKey(profile))?.id;
             if (previous && previous.grade !== profile.grade &&
-                data.exams.some(exam=>participates(previous,exam))) {
+                data.exams.some(exam=>!exam.sharedParticipants && participates(previous,exam))) {
                 gradeChanges.push(id);
                 continue;
             }
@@ -214,7 +214,7 @@
                 if (edited) mark(student);
             }
             for (const exam of data.exams) {
-                if (exam.gakutenAppliedScopeRenames?.includes(id) || !isCampus && exam.grade !== grade) continue;
+                if (exam.archivedAt || exam.gakutenAppliedScopeRenames?.includes(id) || !isCampus && exam.grade !== grade) continue;
                 let edited = false;
                 if (isCampus) {
                     if (exam.campus === original) { exam.campus = name; edited = true; }

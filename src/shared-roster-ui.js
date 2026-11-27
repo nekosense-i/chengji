@@ -114,7 +114,8 @@
             return edit.call(this,id,field,value);
         }
         const student = this.store.state.data.students.find(item=>item.id===id);
-        if (field === 'grade' && student && this.store.state.data.scores.some(score=>score.studentId===id)) {
+        if (field === 'grade' && student && this.store.state.data.scores.some(score=>score.studentId===id &&
+            !this.store.state.data.exams.find(exam=>exam.id===score.examId)?.sharedParticipants)) {
             Utils.msg('这个学生已有历史成绩，跨年级变更需要先核对考试归属。','error');
             this.refresh();
             return;
@@ -196,7 +197,8 @@
             Utils.msg('请分开提交名单资料和学生标签。','error');
             return Promise.resolve(false);
         }
-        if (fields.grade && this.store.state.data.scores.some(score=>ids.includes(score.studentId))) {
+        if (fields.grade && this.store.state.data.scores.some(score=>ids.includes(score.studentId) &&
+            !this.store.state.data.exams.find(exam=>exam.id===score.examId)?.sharedParticipants)) {
             Utils.msg('所选学生已有历史成绩，跨年级变更需要先核对考试归属。','error');
             return Promise.resolve(false);
         }

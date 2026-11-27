@@ -39,14 +39,20 @@
         if (auth?.sharedDirectory) window.gk2TeacherAccounts.renderClasses(document.getElementById('sb-cls-panel'),auth,true);
         return result;
     };
+    function frozenPlace(student,exam) {
+        if (!student || !exam?.sharedParticipants) return null;
+        const row = exam.sharedParticipants.students.find(item=>item.studentId===student.id);
+        return row && exam.sharedParticipants.classes.find(info=>info.id===row.classId);
+    }
     const oldCanRead = Utils.canReadStudent;
     Utils.canReadStudent = function (student,exam) {
         const auth = window.__gakutenAuth?.getAuth();
         if (student && auth?.sharedDirectory && exam?.teacherParticipants) return sharedExamStudent(student,exam,auth);
+        if (auth?.mode === 'admin' && exam?.sharedParticipants) return !!frozenPlace(student,exam);
         return oldCanRead(student,exam);
     };
     const oldPlace = Utils.getClassForExam;
-    Utils.getClassForExam = (student,exam) => exam?.teacherParticipants?.[student?.id] || oldPlace(student,exam);
+    Utils.getClassForExam = (student,exam) => exam?.teacherParticipants?.[student?.id] || frozenPlace(student,exam) || oldPlace(student,exam);
     for (const method of ['_getExamRosterStudents','_getExamEntryStudents']) {
         const original = UI.prototype[method];
         UI.prototype[method] = function (exam) {
@@ -60,6 +66,7 @@
         ...policy,
         isStudentInExam(student, exam) {
             if (exam?.teacherParticipants && student) return Object.hasOwn(exam.teacherParticipants,student.id);
+            if (exam?.sharedParticipants) return !!frozenPlace(student,exam);
             if (!policy.isStudentInExam(student, exam)) return false;
             if (!exam.classScope) return true;
             const place = Utils.getClassForExam(student, exam);
@@ -291,12 +298,18 @@
         if (!exam || !this._examVisible(exam)) return;
         const isAdmin = this._getAuth()?.mode === 'admin';
         document.getElementById('gk2-exam-teacher-entry-field').hidden = !isAdmin;
-        document.getElementById('gk2-exam-teacher-entry').value = exam.entryClosed ? 'closed' : 'open';
+        const status = document.getElementById('gk2-exam-teacher-entry');
+        status.value = exam.archivedAt ? 'archived' : exam.entryClosed ? 'closed' : 'open';
+        status.disabled = !!exam.archivedAt;
         const result = openBasic.call(this, id);
+        for (const input of document.querySelectorAll('#modal-exam-basic-info input:not([type=hidden])')) {
+            if (exam.archivedAt) input.disabled = true;
+            else if (input.id==='gk2-exam-basic-name' || input.id==='gk2-exam-basic-date') input.disabled = false;
+        }
         if (isAdmin) {
             const dialog = document.getElementById('gk2-exam-basic-campuses')?.closest('dialog');
             dialog?.querySelector('[data-edit-exam-scope]')?.remove();
-            if (dialog) {
+            if (dialog && !exam.archivedAt) {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'secondary';
@@ -341,10 +354,25 @@
         }
         return result;
     };
+    UI.prototype.backfillExamParticipants = async function () {
+        if (this._getAuth()?.mode !== 'admin') return;
+        try {
+            const response = await window.gk2TeacherAccounts.adminGradeRequest(
+                'https://sync.nekosensei.cn/gakuten-all',{
+                    method:'POST',headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({action:'backfill-participants',operationId:crypto.randomUUID()})
+                });
+            const result = await response.json();
+            if (!response.ok) throw Error(result.error || '未能补齐参试范围');
+            await window.app.sync.pull({manual:true});
+            Utils.msg('已补齐 '+result.updated+' 场，尚待核对 '+result.unresolved+' 场。');
+        } catch (error) { Utils.msg(error.message,'error'); }
+    };
     const saveEdit = UI.prototype.doEditExam;
     UI.prototype.doEditExam = function(...args) {
         const exam = this.store.state.data.exams.find(e => e.id === document.getElementById('me-eid')?.value);
         if (!exam || !this._examVisible(exam)) return;
+        if (exam.archivedAt) return Utils.msg('已归档的考试不能修改评分规则。','error');
         const selected = this._readExamClassScope('me');
         if (this._getAuth()?.mode !== 'teacher' && exam.classScope && !selected.length) {
             return Utils.msg('请至少勾选一个参与日语班', 'error');
@@ -355,6 +383,7 @@
     UI.prototype.openEditExamModal = function(id) {
         const exam = this.store.state.data.exams.find(e => e.id === id);
         if (!exam || !this._examVisible(exam)) return;
+        if (exam.archivedAt) return Utils.msg('已归档的考试不能修改评分规则。','error');
         const result = edit.call(this, id);
         install(this, 'me', exam);
         return result;

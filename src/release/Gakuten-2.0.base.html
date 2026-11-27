@@ -255,6 +255,8 @@ window.gk2IconMarkup = function(name) {
                 </div>
             </div>
             <div class="dialog-body settings-panel gk2-settings-data-grid" id="settings-panel-data">
+                <div class="section-divider"><button type="button" class="secondary btn--compact"
+                    onclick="window.app.ui.backfillExamParticipants?.()">补齐旧考试参试范围</button></div>
 	                <div class="section-divider">
 	                    <label class="gk2-settings-section-title gk2-cloud-switch-label"><span>云同步</span><input type="checkbox" role="switch" class="gk2-setting-switch" aria-label="启用云同步" id="cloud-sync-toggle" checked onchange="window.app && window.app.sync && window.app.sync.setEnabled(this.checked)"></label>
 	                    <div class="dialog-note gk2-settings-description">关闭后仅保存到本机。试用虚拟数据请进入下方测试模式。</div>
@@ -694,6 +696,7 @@ window.gk2IconMarkup = function(name) {
                 <select id="gk2-exam-teacher-entry">
                     <option value="open">开放录入</option>
                     <option value="closed">关闭录入</option>
+                    <option value="archived">归档并锁定考试规则</option>
                 </select>
             </div>
         </div>

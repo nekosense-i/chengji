@@ -92,6 +92,13 @@
     window.gk2TeacherAccounts = {
         sharedDirectoryAvailable: useSharedDirectory,
         directoryRequest,
+        adminGradeRequest(legacyUrl, options) {
+            const token = localFile && sessionStorage.getItem(tokenKey);
+            const query = new URL(legacyUrl).search;
+            return fetch('https://chengji.nekosensei.cn/gakuten-admin-grades'+query,{
+                ...options,headers:{...options.headers,...(token && {Authorization:'Bearer '+token})}
+            });
+        },
         gradeRequest(options) {
             const token = localFile && sessionStorage.getItem(tokenKey);
             const url = localFile ? 'https://chengji.nekosensei.cn/gakuten-teacher-grades' : '/gakuten-teacher-grades';

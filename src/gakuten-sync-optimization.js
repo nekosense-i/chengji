@@ -73,7 +73,9 @@
             try {
                 if (method === 'POST') window.gk2LegacyWriteAllowed = true;
                 const url = method === 'GET' ? this.api + '?groupId=' + encodeURIComponent(this.groupId) + '&t=' + Date.now() + query : this.api;
-                const response = await fetch(url, {
+                const accounts = window.gk2TeacherAccounts;
+                const request = accounts?.sharedDirectoryAvailable() ? accounts.adminGradeRequest : fetch;
+                const response = await request(url, {
                     method, signal: controller.signal, credentials: 'omit', redirect: 'error', cache: 'no-store',
                     ...(method === 'POST' ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) } : {})
                 });
