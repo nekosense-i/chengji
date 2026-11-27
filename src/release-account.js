@@ -172,25 +172,9 @@ window.gk2DismissibleDialog = function (dialog, label) {
             avatarLabel.title = admin ? '教务管理员 · 全部教学范围' : name.textContent;
             role.textContent = admin ? '管理模式' : '';
             avatarLabel.hidden = !identity;
-            const toggle = document.getElementById('cloud-sync-toggle');
             const sync = window.app?.sync;
-            if (testing) {
-                toggle.disabled = true;
-                toggle.checked = false;
-                toggle.title = '测试模式隔离云端，仅保存虚拟数据';
-            } else if (identity?.teacherId) {
-                toggle.disabled = true;
-                toggle.checked = window.gk2CloudSyncEnabled();
-                toggle.title = toggle.checked ? '教师成绩云同步由账号权限自动管理' : '当前账号未开通教师成绩云同步';
-            } else if (admin && sync) {
+            if (!testing && admin && sync) {
                 if (!sync.isEnabled()) sync.setEnabled(true);
-                toggle.disabled = true;
-                toggle.checked = window.gk2CloudSyncEnabled();
-                toggle.title = toggle.checked ? '正式账号云同步强制开启' : '当前账号暂不可连接云端';
-            } else {
-                toggle.disabled = true;
-                toggle.checked = false;
-                toggle.title = '登录后显示云同步状态';
             }
             window.gk2RenderCloudLamp?.();
         };
@@ -198,7 +182,6 @@ window.gk2DismissibleDialog = function (dialog, label) {
         window.addEventListener('gk2-auth-changed', update);
         if (testing) {
             document.title = '测试模式 · ' + document.title;
-            document.getElementById('cloud-sync-toggle').disabled = true;
             const banner = document.createElement('div');
             banner.className = 'gk2-test-banner';
             banner.innerHTML = '<strong>测试模式 · 虚拟数据</strong><button type="button" class="secondary">返回正式模式</button>';
