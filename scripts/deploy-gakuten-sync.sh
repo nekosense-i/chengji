@@ -39,7 +39,8 @@ stage,live=map(Path,sys.argv[1:])
 base=(stage/'src/release/Gakuten-2.0.base.html').read_bytes()
 assert hashlib.sha256(base).hexdigest()=='315d775035cc693817919d372c023c7667b341b812636d4ffea36be3f57fca55', 'Unknown release baseline'
 live_html=(live/'Gakuten-2.0.html').read_bytes()
-assert hashlib.sha256(live_html).hexdigest()=='a37ba49028b682b5c1cfb96d748cbdea1084658b4f2eb460f0ce5554d2ad170b', 'Production HTML changed; stop and inspect before deploying'
+# Production entry matches Gakuten-2.0 commit 5b12809.
+assert hashlib.sha256(live_html).hexdigest()=='8cc395df692096ad543a569616fe948e69eabb3291c07ebdc8a76c51d76f57e7', 'Production HTML changed; stop and inspect before deploying'
 html=(stage/'Gakuten-2.0.html').read_text()
 old=live_html.decode()
 expected=base.decode()
