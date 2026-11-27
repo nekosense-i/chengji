@@ -28,6 +28,12 @@ window.gk2DismissibleDialog = function (dialog, label) {
     const testing = window.gk2ReleaseTest;
     const auth = () => window.__gakutenAuth?.getAuth();
     const modeAction = testing ? '退出测试模式' : '进入测试模式';
+    window.gk2CloudSyncEnabled = () => {
+        if (testing) return false;
+        const identity = auth();
+        if (identity?.teacherId) return !!identity.sharedDirectory && !!window.gk2TeacherGradeSyncStatus?.();
+        return window.app?.sync?.isEnabled?.() === true;
+    };
 
     function switchMode() {
         if (!testing && auth()?.mode !== 'admin') return;
@@ -167,8 +173,25 @@ window.gk2DismissibleDialog = function (dialog, label) {
             role.textContent = admin ? '管理模式' : '';
             avatarLabel.hidden = !identity;
             const toggle = document.getElementById('cloud-sync-toggle');
-            toggle.disabled = testing || !!identity?.teacherId;
-            if (toggle.disabled) toggle.checked = false;
+            const sync = window.app?.sync;
+            if (testing) {
+                toggle.disabled = true;
+                toggle.checked = false;
+                toggle.title = '测试模式隔离云端，仅保存虚拟数据';
+            } else if (identity?.teacherId) {
+                toggle.disabled = true;
+                toggle.checked = window.gk2CloudSyncEnabled();
+                toggle.title = toggle.checked ? '教师成绩云同步由账号权限自动管理' : '当前账号未开通教师成绩云同步';
+            } else if (admin && sync) {
+                if (!sync.isEnabled()) sync.setEnabled(true);
+                toggle.disabled = true;
+                toggle.checked = window.gk2CloudSyncEnabled();
+                toggle.title = toggle.checked ? '正式账号云同步强制开启' : '当前账号暂不可连接云端';
+            } else {
+                toggle.disabled = true;
+                toggle.checked = false;
+                toggle.title = '登录后显示云同步状态';
+            }
             window.gk2RenderCloudLamp?.();
         };
         update();

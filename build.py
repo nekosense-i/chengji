@@ -286,6 +286,33 @@ def build(destination):
         if old not in core:
             raise RuntimeError('Production entry anchor changed: ' + old[:80])
         core = core.replace(old, new)
+    core = core.replace(
+        'cloudSyncToggle.checked = window.app.sync.isEnabled();',
+        'cloudSyncToggle.checked = window.gk2CloudSyncEnabled?.() ?? window.app.sync.isEnabled();',
+        1,
+    )
+    cloud_warning = 'window.app?.sync?.isEnabled && window.app.sync.isEnabled()'
+    if core.count(cloud_warning) != 2:
+        raise RuntimeError('Production cloud warning anchors changed')
+    core = core.replace(cloud_warning,
+        '(window.gk2CloudSyncEnabled?.() ?? (window.app?.sync?.isEnabled && window.app.sync.isEnabled()))')
+    core = core.replace(
+        "const syncEnabled = !(localStorage.getItem('gakuten_cloud_sync_disabled') === '1');",
+        "const syncEnabled = window.gk2CloudSyncEnabled?.() ?? !(localStorage.getItem('gakuten_cloud_sync_disabled') === '1');",
+        1,
+    )
+    old_restore_warning = "localStorage.getItem('gakuten_cloud_sync_disabled') === '1' ? '' :"
+    if core.count(old_restore_warning) != 1:
+        raise RuntimeError('Production backup restore warning anchor changed')
+    core = core.replace(old_restore_warning,
+        "!(window.gk2CloudSyncEnabled?.() ?? (localStorage.getItem('gakuten_cloud_sync_disabled') !== '1')) ? '' :", 1)
+    for old, new in [
+        ('如需演示清空，请先关闭云同步。', '如需测试清空，请进入隔离测试模式。'),
+        ('如只是本机测试，请先关闭云同步。', '如只是本机测试，请进入隔离测试模式。'),
+    ]:
+        if core.count(old) != 1:
+            raise RuntimeError('Production cloud guidance anchor changed: ' + old)
+        core = core.replace(old, new, 1)
     core = core.replace('let existingExam = this.store.state.data.exams.find(e => e.name === n && e.grade === g);',
         "const classScope = this._readExamClassScope('m');\n                    if (!classScope.length) return Utils.msg('请至少勾选一个参与日语班', 'error');\n                    let existingExam = null;")
     core = core.replace('e.id !== eid && e.name === n && e.grade === g', 'e.id !== eid && e.name === n && e.grade === g && !e.classScope && !currentExam.classScope && !classScope')
@@ -520,7 +547,17 @@ def build(destination):
     sync_start = features.index('window.gk2OpenSyncStatus=function(){')
     sync_end = features.index("window.addEventListener('load',()=>{", sync_start)
     features = features[:sync_start] + (ROOT / 'src/release-sync-dialog.js').read_text() + '\n' + features[sync_end:]
-    features = features.replace("status.textContent=!sync.isEnabled()?", "status.dataset.state=sync.connectionStatus().state;status.textContent=!sync.isEnabled()?", 1)
+    old_status = "const update=()=>{const meta=window.app.store.state.syncMeta;status.textContent=!sync.isEnabled()?'云同步已关闭，数据保存在本机。':meta.lastError?'同步异常：'+meta.lastError:sync._lampActive?'正在读取或写入云端数据…':'云同步正常'+(meta.lastPulledAt?' · 最近读取 '+new Date(meta.lastPulledAt).toLocaleString():'');};"
+    old_status = old_status.replace("'云同步正常'+(meta.lastPulledAt?", "(sync.connectionStatus().state==='pending'?'已保存到本机，等待云端同步':'云端已确认')+(meta.lastPulledAt?")
+    new_status = "const update=()=>{const meta=window.app.store.state.syncMeta,teacher=window.__gakutenAuth?.getAuth()?.teacherId&&window.gk2TeacherGradeSyncStatus?.(),enabled=window.gk2CloudSyncEnabled?.()??sync.isEnabled(),state=teacher?.state||sync.connectionStatus().state,error=teacher?teacher.error:meta.lastError,pending=teacher?teacher.pending>0:state==='pending',busy=teacher?.busy||sync._lampActive,summary=!enabled?'云同步已关闭，数据保存在本机。':error?'同步异常：'+error:busy?'正在同步云端…':pending?'本机修改待上传':'云同步已开启，暂无待上传修改';status.dataset.state=state;status.textContent=summary;};"
+    if features.count(old_status) != 1:
+        raise RuntimeError('Production cloud settings status anchor changed')
+    features = features.replace(old_status, new_status, 1)
+    features = features.replace(
+        'const syncEnabled=!!window.app.sync?.isEnabled?.(),syncNote=',
+        'const syncEnabled=!!(window.gk2CloudSyncEnabled?.()??window.app.sync?.isEnabled?.()),syncNote=',
+        1,
+    )
     features += '\n' + (ROOT / 'src/jlpt-score-overview.js').read_text()
     features = features.replace("if(head){head.style.pointerEvents=teacher?'none':'';head.style.opacity=teacher?'.68':'';head.setAttribute('aria-disabled',String(teacher));}",
                                 "if(head){const locked=teacher&&!auth()?.sharedDirectory;head.style.pointerEvents=locked?'none':'';head.style.opacity=locked?'.68':'';head.setAttribute('aria-disabled',String(locked));}",1)
