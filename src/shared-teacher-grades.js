@@ -51,7 +51,7 @@
     function canSubmit(change, students, exams, scopes) {
         const student = students.get(change.studentId);
         const exam = exams.get(change.examId);
-        if (!student || !exam || exam.entryClosed === true) return false;
+        if (!student || !exam) return false;
         if (exam.teacherParticipants) return Object.hasOwn(exam.teacherParticipants,student.id);
         const date = String(exam.date || '').slice(0,10);
         const history = student.classHistory || [];
