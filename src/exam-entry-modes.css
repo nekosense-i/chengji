@@ -42,3 +42,17 @@
 #gk2-exam-operations .gk2-entry-mode-settings strong { font-size: 12px; color: #63728a; }
 #gk2-exam-operations .gk2-entry-mode-settings label { justify-content: flex-start; color: #46566f; }
 #gk2-exam-operations .gk2-entry-mode-settings input { width: 14px; height: 14px; margin: 0; accent-color: #6672d8; }
+
+/* Keep the class disclosure header compact and size its destructive action with the title. */
+.gk2-navigation #view-exams details.gk2-entry-class-group > .tree-summary.flat-acc {
+    min-height: 0;
+    padding: 8px 14px !important;
+}
+.gk2-navigation #view-exams details.gk2-entry-class-group > .tree-summary.flat-acc > button {
+    min-height: 0;
+    padding: 6px 12px !important;
+    font-size: 14px !important;
+    font-weight: 600;
+    line-height: 1.25;
+    flex: 0 0 auto;
+}
