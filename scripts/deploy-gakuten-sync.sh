@@ -23,9 +23,10 @@ commit=${2:?Specify the exact tested Git commit}
 [[ -f "$live/Gakuten-2.0.html" ]]
 sudo test -f "$database"
 systemctl is-active --quiet nekosync-prod.service
-# Production adapter matches nekosensei-sync-server commit c0dc738ad7294b62734a09bd62f1ad4b2e039afe.
+# Verify the deployed comparison-compatible backend.
 printf '%s\n' '5546c1b6a99badf28e661319c7cd8407175790b63050b9e020112b6296738d69  /opt/nekosensei-sync-prod/src/gakuten-service.js' | sha256sum --check --status
-printf '%s\n' '832ff4e802a7796f75d8ae61a31cb05e04a8bf1c3af6245e7d6c27abe1b735fc  /opt/nekosensei-sync-prod/src/gakuten-merge.js' | sha256sum --check --status
+printf '%s\n' '68d14b705037259d85b48d2128b2a61c9adccc0b62c42361b0794a235ad52c70  /opt/nekosensei-sync-prod/src/gakuten-merge.js' | sha256sum --check --status
+printf '%s\n' 'a341275d0a47e56656e54de90ca979ad8bbef406c19c06dbfbf1a72b6c220cdc  /opt/nekosensei-sync-prod/src/server.js' 'cd5daed170f7aa3d5bb8e770f01a4608d009408a1070e0cd4b144eb653f889e3  /opt/nekosensei-sync-prod/src/gakuten-comparison.js' | sha256sum --check --status
 git cat-file -e "$commit^{commit}"
 remote=$(git remote get-url origin)
 [[ "$remote" == https://github.com/nekosense-i/chengji* || "$remote" == git@github.com:nekosense-i/chengji* ]]
@@ -37,10 +38,10 @@ from pathlib import Path
 import sys,re,hashlib
 stage,live=map(Path,sys.argv[1:])
 base=(stage/'src/release/Gakuten-2.0.base.html').read_bytes()
-assert hashlib.sha256(base).hexdigest()=='ddd3a9eac48100348a437493fe2a9e88616254d739c2ad6391cd2bcc85c4e726', 'Unknown release baseline'
+assert hashlib.sha256(base).hexdigest()=='dfce98ed8469d129b2db4860fd51cd1019878ba96ebb8b08e660ff1b557bc106', 'Unknown release baseline'
 live_html=(live/'Gakuten-2.0.html').read_bytes()
-# Production entry matches the deployed Gakuten-2.0 commit 622d72b.
-assert hashlib.sha256(live_html).hexdigest()=='79899a8a97fb6a5e3171901a837f665ca5c2ae21e074ca5bc43f19deb3cc81e7', 'Production HTML changed; stop and inspect before deploying'
+# Production entry matches the deployed Gakuten-2.0 commit 9b4536f.
+assert hashlib.sha256(live_html).hexdigest()=='66dc522067dc5610a888139f048d23d62c38a20c5af863f322aa1041e5735d38', 'Production HTML changed; stop and inspect before deploying'
 html=(stage/'Gakuten-2.0.html').read_text()
 old=live_html.decode()
 expected=base.decode()

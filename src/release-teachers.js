@@ -100,10 +100,11 @@
                 ...options,headers:{...options.headers,...(token && {Authorization:'Bearer '+token})}
             });
         },
-        gradeRequest(options) {
+        gradeRequest(options, mode) {
             const token = localFile && sessionStorage.getItem(tokenKey);
             const url = localFile ? 'https://chengji.nekosensei.cn/gakuten-teacher-grades' : '/gakuten-teacher-grades';
-            return fetch(url,{...options,headers:{...options.headers,...(token && {Authorization:'Bearer '+token})}});
+            return fetch(mode === 'comparison' ? url+'?mode=comparison' : url,
+                {...options,headers:{...options.headers,...(token && {Authorization:'Bearer '+token})}});
         },
         async signIn(credential) {
             if (window.gk2ReleaseTest) return credential.trim() === 'nekosensei' ? {mode:'admin'} : null;

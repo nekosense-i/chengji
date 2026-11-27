@@ -118,12 +118,15 @@ def build(destination):
        url.pathname==='/api/session' && ['POST','DELETE'].includes(method))) {
     return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
   }
-  if (location.protocol==='file:' && url.href==='https://chengji.nekosensei.cn/gakuten-teacher-grades' &&
-      ['GET','POST'].includes(method)) return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
+  const teacherGrades = url.pathname==='/gakuten-teacher-grades' && !url.hash && (
+      !url.search && ['GET','POST'].includes(method) || url.search==='?mode=comparison' && method==='GET');
+  if (location.protocol==='file:' && url.origin==='https://chengji.nekosensei.cn' &&
+      !url.username && !url.password && teacherGrades) return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
+  if (url.origin===location.origin && location.hostname==='chengji.nekosensei.cn' && teacherGrades)
+    return nativeFetch(input,{...options,redirect:'error',credentials:'same-origin'});
   if (url.origin===location.origin && location.hostname==='chengji.nekosensei.cn' && !url.search && !url.hash && (
       /^\/gakupo-directory\/(session|roster|roster-import|teachers|gakuten-templates|gakuten-preferences)$/.test(url.pathname) &&
-          (['GET','POST'].includes(method) || method==='DELETE' && url.pathname.endsWith('/session')) ||
-      url.pathname==='/gakuten-teacher-grades' && ['GET','POST'].includes(method)
+          (['GET','POST'].includes(method) || method==='DELETE' && url.pathname.endsWith('/session'))
   )) return nativeFetch(input,{...options,redirect:'error',credentials:'same-origin'});''',1)
     environment = environment.replace("  if (url.origin===location.origin", '''  if (url.origin==='https://chengji.nekosensei.cn' && url.pathname==='/gakuten-admin-grades' &&
       (location.protocol==='file:' || url.origin===location.origin) && ['GET','POST'].includes(method)) {
