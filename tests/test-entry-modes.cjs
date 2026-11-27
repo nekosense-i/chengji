@@ -165,6 +165,15 @@ const web = http.createServer((req, res) => {
             console.log('PASS mobile menu fits the viewport and exposes local default settings.');
         }
         const templatePage = await open();
+        await templatePage.evaluate(() => app.ui.openExamModal());
+        await templatePage.locator('#m-campuses-container input').first().check();
+        await templatePage.locator('#m-class-scope input').first().check();
+        await templatePage.locator('#m-ename').fill('新建后自动选中的考试');
+        await templatePage.getByRole('button',{name:'确定创建'}).click();
+        await templatePage.waitForFunction(()=>{
+            const id=app.store.state.data.exams.find(exam=>exam.name==='新建后自动选中的考试')?.id;
+            return id && document.getElementById('global-exam').value===id && gk2.entryExamId===id;
+        });
         await templatePage.evaluate(() => {
             const {campus,grade,teachingClass} = app.store.state.data.students[0];
             const info = {id:'template-class',campus,grade,teachingClass,teachingCategory:'gaokao'};

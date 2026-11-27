@@ -375,6 +375,22 @@
             }).catch(error=>Utils.msg(error.message,'error'));
         }
     }
+    UI.prototype.selectCreatedExam = function (id) {
+        const exam = this.store.state.data.exams.find(row=>row.id===id);
+        if (!exam || !this._examVisible(exam)) return false;
+        const select = document.getElementById('global-exam');
+        this.initGlobalExamsDropdown(false,false);
+        if (![...select.options].some(option=>option.value===id)) {
+            Object.assign(this.store.state.globalFocus,{campuses:[],grades:[],phases:[],tClasses:[]});
+            this.initGlobalFilters();
+            this.initGlobalExamsDropdown(false,false);
+        }
+        if (![...select.options].some(option=>option.value===id)) return false;
+        select.value = id;
+        this.onGlobalExamChange();
+        if (this.cur !== 'exams') window.gk2.navigate('exams');
+        return true;
+    };
     const create = UI.prototype.openExamModal;
     UI.prototype.openExamModal = function(...args) {
         const result = create.apply(this, args);

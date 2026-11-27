@@ -404,9 +404,15 @@ def build(destination):
         '                        let participants;\n'
         '                        try { participants = this.sharedExamParticipants?.(g,classScope); }\n'
         '                        catch (error) { return Utils.msg(error.message,"error"); }\n'
-        '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, classScope, entryMode, ...(participants ? {sharedParticipants:participants} : {}), ...(assessmentRule ? { assessmentRule: JSON.parse(JSON.stringify(assessmentRule)) } : {}) });',
+        '                        this.store.state.data.exams.push({ id: newId, _ts: Date.now(), name: n, date: d, maxTotal: max, types: qs, grade: g, campuses: selectedCampuses, classScope, entryMode, ...(participants ? {sharedParticipants:participants} : {}), ...(assessmentRule ? { assessmentRule: JSON.parse(JSON.stringify(assessmentRule)) } : {}) });\n'
+        '                        this.store.markAsUnsaved();\n'
+        '                        document.getElementById("modal-exam").close();\n'
+        '                        this.refresh();\n'
+        '                        this.selectCreatedExam(newId);\n'
+        '                        return Utils.msg("已成功创建考试。");',
         1,
     )
+    core = core.replace('                        Utils.msg("已成功创建考试。");\n', '', 1)
     # Count validation applies to both correct and incorrect question counts.
     start, end = core.index('                renderExamTables(eid) {'), core.index('                saveVal(sid, eid, tn, val, tid, max = 0, inputEl) {')
     core = core[:start] + core[start:end].replace('正确题数', '题数') + core[end:]

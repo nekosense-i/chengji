@@ -219,7 +219,9 @@
             store._syncInFlight = null;
             store.lastLocalDataSnapshot = store.cloneSyncState();
             store.rebuildScoreIndex();
-            if (dataChanged) {
+            if (ui.pendingCreatedExamId && ui.selectCreatedExam(ui.pendingCreatedExamId)) {
+                ui.pendingCreatedExamId = null;
+            } else if (dataChanged) {
                 if (!document.activeElement?.classList.contains('score-input') && !document.querySelector('dialog[open]')) ui.refresh();
                 else ui.pendingRemoteRefresh = true;
             }
@@ -312,6 +314,7 @@
             }
             if (result.operationId !== operationId) throw Error('未收到本次考试操作的云端确认，请重新核对');
             examWriteVersion++;
+            if (request.action==='create-exam') this.pendingCreatedExamId = request.examId;
             dialog?.close();
             Utils.msg(request.action==='delete-exam' ? '考试已删除' : '考试更新已由云端确认');
             if (inFlight) refreshAfterSync = true;
