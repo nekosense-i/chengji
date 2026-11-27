@@ -435,10 +435,12 @@ def build(destination):
         raise RuntimeError('Production class clear button anchor changed')
     core = core.replace(old_clear_button, new_clear_button, 1)
     core = add_disclosure_core(core)
+    core = core.replace('window.gk2JLPT.templateFor(document.getElementById("m-template-select")?.value)?.assessmentRule',
+                        'this.examTemplateRule(document.getElementById("m-template-select")?.value)', 1)
     core = core.replace(
         '            return { Store, Sync, UI };',
         '\n'.join((ROOT / 'src' / name).read_text() for name in (
-            'interaction-optimizations.js', 'shared-roster.js', 'shared-roster-ui.js', 'shared-teacher-grades.js', 'personal-exam-templates.js'
+            'interaction-optimizations.js', 'shared-roster.js', 'shared-roster-ui.js', 'shared-teacher-grades.js', 'personal-exam-templates.js', 'shared-exam-templates.js'
         )) + '\n            return { Store, Sync, UI };',
         1,
     )

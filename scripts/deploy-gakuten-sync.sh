@@ -37,10 +37,10 @@ from pathlib import Path
 import sys,re,hashlib
 stage,live=map(Path,sys.argv[1:])
 base=(stage/'src/release/Gakuten-2.0.base.html').read_bytes()
-assert hashlib.sha256(base).hexdigest()=='315d775035cc693817919d372c023c7667b341b812636d4ffea36be3f57fca55', 'Unknown release baseline'
+assert hashlib.sha256(base).hexdigest()=='bbbe2883effdc86823bc783ce98a4663e27674d5b5f68d64e83bb377f29ea86d', 'Unknown release baseline'
 live_html=(live/'Gakuten-2.0.html').read_bytes()
-# Production entry matches the deployed Gakuten-2.0 commit 3fd1abf.
-assert hashlib.sha256(live_html).hexdigest()=='47759fd0b59bd5aedb214aeed0508f525831bfc789b705fb134f3e16fb0bc8be', 'Production HTML changed; stop and inspect before deploying'
+# Production entry matches the deployed Gakuten-2.0 commit ff1a374.
+assert hashlib.sha256(live_html).hexdigest()=='2710afdc6341778039db0f4acb25b3c50107d7b2200d88663a7db4dea0e1ac92', 'Production HTML changed; stop and inspect before deploying'
 html=(stage/'Gakuten-2.0.html').read_text()
 old=live_html.decode()
 expected=base.decode()

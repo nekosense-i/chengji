@@ -194,6 +194,8 @@
             }
             if (identity()?.teacherId !== auth.teacherId || JSON.stringify(store.state.data.scores) !== fingerprint) return;
             const cloudContent = JSON.stringify(snapshot.data);
+            ui.teacherExamClasses = snapshot.examClasses || [];
+            ui.teacherTrashedExams = snapshot.trashedExams || [];
             snapshot.data.examTemplates = snapshot.data.examTemplates.concat(store.state.personalExamTemplates?.templates || []);
             const dataChanged = lastCloudContent === undefined
                 ? JSON.stringify(data) !== JSON.stringify(snapshot.data)
@@ -243,6 +245,85 @@
         return {...meter,pending,held:state?.sharedTeacherHeldChanges?.length || 0,busy:!!inFlight || !!conflict};
     };
     window.gk2SynchronizeTeacherGrades = synchronize;
+    const deleteExam = UI.prototype.deleteExam;
+    UI.prototype.deleteExam = function (id) {
+        if (!identity()?.sharedDirectory) return deleteExam.call(this,id);
+        const exam = this.store.state.data.exams.find(row=>row.id===id);
+        if (!exam) return;
+        const scoreCount = this.store.state.data.scores.filter(row=>row.examId===id).length;
+        this.showConfirmDialog(`将「${exam.name}」及其 ${scoreCount} 条成绩移入考试回收站，可恢复。`,()=>
+            this.submitTeacherExamChange({action:'trash-exam',examId:id,expectedVersion:exam._ts}),'移入回收站');
+    };
+    const saveExamBasicInfo = UI.prototype.saveExamBasicInfo;
+    UI.prototype.saveExamBasicInfo = function () {
+        if (!identity()?.sharedDirectory) return saveExamBasicInfo.call(this);
+        const id = document.getElementById('gk2-exam-basic-id').value;
+        const exam = this.store.state.data.exams.find(row=>row.id===id);
+        if (!exam) return;
+        const name = document.getElementById('gk2-exam-basic-name').value.trim();
+        const date = document.getElementById('gk2-exam-basic-date').value;
+        const classIds = (this.teacherExamClasses || []).filter(row=>row.grade===exam.grade &&
+            exam.classScope?.includes(JSON.stringify([row.campus,row.teachingClass]))).map(row=>row.id);
+        return this.submitTeacherExamChange({action:'edit-exam',examId:id,expectedVersion:exam._ts,
+            exam:{name,date,classIds,types:exam.types,assessmentRule:exam.assessmentRule}},
+            document.getElementById('modal-exam-basic-info'));
+    };
+    UI.prototype.openTeacherExamTrash = function () {
+        const dialog = document.createElement('dialog');
+        dialog.className = 'dialog-shell dialog--md';
+        const title = document.createElement('h2');
+        title.textContent = '考试回收站';
+        const close = document.createElement('button');
+        close.textContent = '关闭';
+        close.onclick = ()=>dialog.close();
+        dialog.append(title);
+        for (const exam of this.teacherTrashedExams || []) {
+            const row = document.createElement('p');
+            const button = document.createElement('button');
+            button.textContent = '恢复';
+            button.onclick = ()=>this.submitTeacherExamChange({
+                action:'restore-exam',examId:exam.id,expectedVersion:exam._ts
+            },dialog);
+            row.append(document.createTextNode(`${exam.grade} · ${exam.name} · ${exam.date} `),button);
+            dialog.append(row);
+        }
+        if (!this.teacherTrashedExams?.length) dialog.append('暂无已删除考试。');
+        dialog.append(close);
+        dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+        document.body.append(dialog);
+        dialog.showModal();
+    };
+    document.addEventListener('DOMContentLoaded',()=>{
+        const button = document.createElement('button');
+        button.className = 'secondary btn--compact';
+        button.textContent = '考试回收站';
+        button.onclick = ()=>window.app.ui.openTeacherExamTrash();
+        document.querySelector('#view-exams .top-actions')?.append(button);
+    },{once:true});
+    UI.prototype.submitTeacherExamChange = async function (request, dialog) {
+        if (this.teacherExamSaving) return;
+        this.teacherExamSaving = true;
+        try {
+            const response = await window.gk2TeacherAccounts.gradeRequest({
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({...request,operationId:crypto.randomUUID()})
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                if (request.action==='create-exam' && response.status===400 && result.error==='成绩提交格式无效') {
+                    throw Error('当前云端版本尚未启用教师建考。考试未创建，表单内容已保留。');
+                }
+                throw Error(result.error || '考试保存失败');
+            }
+            dialog?.close();
+            Utils.msg('考试更新已由云端确认');
+            await synchronize();
+        } catch (error) {
+            Utils.msg(error.message,'error');
+        } finally {
+            this.teacherExamSaving = false;
+        }
+    };
     window.addEventListener('load',()=>setTimeout(synchronize,0),{once:true});
     document.addEventListener('visibilitychange',()=>{ if (!document.hidden) synchronize(); });
     window.addEventListener('gk2-auth-changed',synchronize);

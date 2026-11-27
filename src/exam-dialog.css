@@ -131,3 +131,32 @@
     .exam-setup .exam-question-columns > :nth-child(5) { display: none; }
     .gk2-app .exam-setup .dialog-input-list { max-height: 527px; }
 }
+
+.exam-template-library .dialog-body > label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-block: 8px;
+}
+.exam-template-library .dialog-body > label :is(select, input:not([type="checkbox"])) {
+    flex: 1;
+    min-width: 0;
+}
+.exam-template-library [data-questions] {
+    display: grid;
+    gap: 8px;
+    margin-block: 12px;
+}
+.exam-template-library [data-questions] .q-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+}
+.exam-template-library .q-row input { min-width: 0; }
+@media (max-width: 600px) {
+    .exam-template-library [data-questions] .q-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .exam-template-library .q-row .qn { grid-column: 1 / -1; }
+}

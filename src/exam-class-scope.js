@@ -2,6 +2,14 @@
 (() => {
     const key = (campus, name) => JSON.stringify([campus, name]);
     const allows = (exam, campus, name) => !exam?.classScope || exam.classScope.includes(key(campus, name));
+    function authorizedExamClasses(ui, auth) {
+        const assigned = window.gk2TeacherAccounts.classInfo(auth);
+        const classes = ui.teacherExamClasses?.length ? ui.teacherExamClasses : assigned;
+        const active = classes.find(row=>row.campus===auth.campus && row.grade===auth.grade &&
+            row.teachingClass===auth.classId);
+        return active ? classes.filter(row=>row.campus===active.campus && row.grade===active.grade &&
+            row.teachingCategory===active.teachingCategory) : [];
+    }
     function currentTeachingGroup(exam, auth) {
         if (!auth?.sharedDirectory || !exam?.teacherParticipants) return null;
         return exam.teacherSources?.find(info=>info.campus===auth.campus && info.grade===auth.grade &&
@@ -219,7 +227,7 @@
         const date = document.getElementById(prefix + '-edate');
         document.getElementById(prefix + '-class-scope')?.parentElement.remove();
         const auth = ui._getAuth();
-        if (exam && auth?.mode === 'teacher') return;
+        if (exam && auth?.mode === 'teacher' && !auth.sharedDirectory) return;
         const section = document.createElement('div');
         section.className = 'exam-class-scope';
         const heading = document.createElement('div');
@@ -235,8 +243,11 @@
         campuses.after(section);
         const focus = ui.store.state.globalFocus || {};
         const selected = new Set(exam?.classScope || []);
-        if (!exam && focus.grades?.length === 1) grade.value = focus.grades[0];
-        if (!exam && focus.tClasses?.length) {
+        if (!exam && auth?.sharedDirectory && [...grade.options].some(option=>option.value===auth.grade)) grade.value=auth.grade;
+        else if (!exam && focus.grades?.length === 1) grade.value = focus.grades[0];
+        const sharedTeacher = auth?.sharedDirectory;
+        const teacherClasses = sharedTeacher ? authorizedExamClasses(ui,auth) : [];
+        if (!exam && !sharedTeacher && focus.tClasses?.length) {
             const candidates = ui.store.state.data.students.filter(student => student.grade === grade.value &&
                 student.rosterMembership?.archivedAt == null && focus.tClasses.includes(student.teachingClass) &&
                 (!focus.campuses?.length || focus.campuses.includes(student.campus)));
@@ -266,8 +277,22 @@
         }
         function updateTemplate() {
             if (!picker) return;
-            const scopes = ui._readExamClassScope('m');
-            const defaults = scopes.map(value => {
+            const checked = ui._readExamClassScope('m');
+            const scopes = sharedTeacher && !checked.length
+                ? teacherClasses.map(row=>key(row.campus,row.teachingClass)) : checked;
+            const classes = ui.scopedTemplateClasses || teacherClasses;
+            const chosen = classes.filter(row=>row.grade===grade.value && scopes.includes(key(row.campus,row.teachingClass)));
+            const categories = new Set(chosen.map(row=>row.teachingCategory).filter(Boolean));
+            const scopedCategory = categories.size===1 ? [...categories][0] : null;
+            for (const option of picker.querySelectorAll('option')) {
+                const category = option.dataset.teachingCategory ||
+                    (option.value.startsWith('jlpt-') ? 'study-abroad' : '');
+                option.hidden = option.disabled = !!(scopedCategory && category && category!==scopedCategory);
+            }
+            const scoped = (auth?.sharedDirectory || auth?.cloudAdmin) && ui.scopedExamDefault;
+            const scopedSuggestion = scopedCategory && scoped && ui.scopedExamDefault(
+                scopedCategory,grade.value,date.value,new Set(chosen.map(row=>row.campus)).size>1);
+            const defaults = scoped ? (scopedSuggestion ? [scopedSuggestion] : []) : scopes.map(value => {
                 const [campus, name] = JSON.parse(value);
                 return preferredTemplate(ui, campus, grade.value, name)?.id || '';
             });
@@ -280,7 +305,7 @@
             }
             if (!manual && previousAuto && !conflict && suggestion !== previousAuto) {
                 if (suggestion) ui.loadExamTemplate(suggestion, { silent: true });
-                else {
+                else if (picker.value === previousAuto) {
                     const list = document.getElementById('q-list');
                     list.dataset.gk2JlptTemplate = '';
                     list.innerHTML = '<div class="q-row" draggable="true">' + ui._renderQuestionRow({ name: '听力', max: 30, old: null }) + '</div>';
@@ -298,7 +323,7 @@
             hint.textContent = conflict
                 ? (picker.value ? '各班默认模板不同，保留当前模板。可为本场更换。' : '各班默认模板不同，请选择本场模板。')
                 : scopes.length && !suggestion ? '所选班级未设置默认模板，可选模板或手动配置题型。'
-                : '本场调整不会修改班级默认模板。';
+                : ui.scopedTemplateError || (suggestion ? '已匹配本场考试的默认模板。' : '请选择模板或填写题型。');
         }
         function render() {
             const checked = [...campuses.querySelectorAll('input:checked')].map(input => input.value);
@@ -308,16 +333,20 @@
                 const place = Utils.getClassForExam(student, { date: date.value });
                 if (checked.includes(place.campus) && place.teachingClass) options.set(key(place.campus, place.teachingClass), place);
             }
+            if (sharedTeacher) {
+                options.clear();
+                for (const row of teacherClasses) options.set(key(row.campus,row.teachingClass),row);
+            }
             box.replaceChildren();
             for (const [value, place] of options) {
-                if (auth?.mode === 'teacher' && value !== key(auth.campus, auth.classId)) continue;
+                if (!sharedTeacher && auth?.mode === 'teacher' && value !== key(auth.campus, auth.classId)) continue;
                 const label = document.createElement('label');
                 label.className = 'campus-tag-label';
                 const input = document.createElement('input');
                 input.type = 'checkbox';
                 input.value = value;
-                input.checked = selected.has(value) || auth?.mode === 'teacher' || (!exam && options.size === 1);
-                input.disabled = auth?.mode === 'teacher';
+                input.checked = selected.has(value) || (!sharedTeacher && (auth?.mode === 'teacher' || (!exam && options.size === 1)));
+                input.disabled = !sharedTeacher && auth?.mode === 'teacher';
                 input.onchange = () => {
                     if (input.checked) selected.add(value);
                     else selected.delete(value);
@@ -327,6 +356,7 @@
                 box.append(label);
             }
             const message = !box.querySelector('input') ? '请先选择有日语班的校区和年级。'
+                : !exam && sharedTeacher ? '不勾选班级时，默认纳入本校区本年级全部同类型班级。'
                 : exam && !exam.classScope ? '历史考试不勾选时保留原范围。' : '';
             if (message) {
                 const hint = document.createElement('span');
@@ -336,8 +366,14 @@
             }
             updateTemplate();
         }
+        if (picker) document.getElementById('q-list').oninput = () => { manual = true; };
         campuses.onchange = grade.onchange = date.onchange = render;
         render();
+        if (picker && (auth?.sharedDirectory || auth?.cloudAdmin)) {
+            ui.refreshScopedExamTemplates?.().then(()=>{
+                if (picker.isConnected && picker.closest('dialog')?.open) render();
+            }).catch(error=>Utils.msg(error.message,'error'));
+        }
     }
     const create = UI.prototype.openExamModal;
     UI.prototype.openExamModal = function(...args) {
@@ -349,6 +385,23 @@
     UI.prototype.doCreateExam = function(...args) {
         const picker = document.getElementById('m-template-select');
         if (picker?.validity.customError && !picker.value) return picker.reportValidity();
+        const auth = this._getAuth();
+        if (auth?.sharedDirectory) {
+            const selection = new Set(this._readExamClassScope('m'));
+            const candidates = authorizedExamClasses(this,auth);
+            const scopeClassId = candidates.find(row=>row.teachingClass===auth.classId)?.id;
+            const classIds = candidates.filter(row=>selection.has(key(row.campus,row.teachingClass))).map(row=>row.id);
+            const name = document.getElementById('m-ename').value.trim();
+            const date = document.getElementById('m-edate').value;
+            const types = this.collectCurrentQuestionTypes();
+            if (!name || !date || !scopeClassId || !types?.length) {
+                return Utils.msg('请填写考试名称、日期、参试班和有效题型','error');
+            }
+            const assessmentRule = this.examTemplateRule(picker?.value);
+            return this.submitTeacherExamChange({
+                action:'create-exam',examId:Utils.id(),exam:{name,date,classIds,scopeClassId,types,assessmentRule}
+            },document.getElementById('modal-exam'));
+        }
         return submitExam.apply(this, args);
     };
     const openBasic = UI.prototype.openEditExamBasicInfoModal;
@@ -400,6 +453,19 @@
         if (!exam || !this._examVisible(exam)) return;
         if (exam.archivedAt) return Utils.msg('已归档的考试不能修改评分规则。','error');
         const selected = this._readExamClassScope('me');
+        const auth = this._getAuth();
+        if (auth?.sharedDirectory) {
+            const classIds = authorizedExamClasses(this,auth)
+                .filter(row=>selected.includes(key(row.campus,row.teachingClass))).map(row=>row.id);
+            const name = document.getElementById('me-ename').value.trim();
+            const date = document.getElementById('me-edate').value;
+            const types = this._collectQuestionTypesFromList('edit-q-list');
+            if (!name || !date || !classIds.length || !types?.length) {
+                return Utils.msg('请填写考试名称、日期、参试班和有效题型','error');
+            }
+            return this.submitTeacherExamChange({action:'edit-exam',examId:exam.id,expectedVersion:exam._ts,
+                exam:{name,date,classIds,types,assessmentRule:exam.assessmentRule}},document.getElementById('modal-edit-exam'));
+        }
         if (this._getAuth()?.mode !== 'teacher' && exam.classScope && !selected.length) {
             return Utils.msg('请至少勾选一个参与日语班', 'error');
         }

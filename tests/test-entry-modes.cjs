@@ -164,6 +164,69 @@ const web = http.createServer((req, res) => {
             await page.screenshot({ path: process.env.ENTRY_SCREENSHOT.replace('.png', '-mobile.png') });
             console.log('PASS mobile menu fits the viewport and exposes local default settings.');
         }
+        const templatePage = await open();
+        await templatePage.evaluate(() => {
+            const {campus,grade,teachingClass} = app.store.state.data.students[0];
+            const info = {id:'template-class',campus,grade,teachingClass,teachingCategory:'gaokao'};
+            const teacher = {mode:'teacher',sharedDirectory:true,teacherId:'template-teacher',campus,grade,classId:teachingClass};
+            window.templateTestIdentity = teacher;
+            window.__gakutenAuth.getAuth = app.ui._getAuth = () => window.templateTestIdentity;
+            gk2TeacherAccounts.classInfo = () => [info];
+            gk2TeacherAccounts.directoryRequest = async route => route==='roster'
+                ? {classes:{fixture:{info}}}
+                : {templates:[],defaults:{},version:0};
+            app.ui.openExamModal();
+        });
+        const picker = templatePage.locator('#m-template-select');
+        assert.equal(await templatePage.locator('#m-class-scope input:checked').count(),0);
+        assert.equal(await picker.inputValue(),'gaokao-standard');
+        assert.equal(await templatePage.locator('#q-list .q-row').count(),6);
+        await templatePage.evaluate(() => {
+            app.ui.submitTeacherExamChange = payload => { window.templateTestPayload = payload; };
+            document.getElementById('m-ename').value='模板测试考试';
+            app.ui.doCreateExam();
+        });
+        const submitted = () => templatePage.evaluate(() => window.templateTestPayload.exam);
+        assert.equal((await submitted()).scopeClassId,'template-class');
+        assert.deepEqual((await submitted()).classIds,[]);
+        await templatePage.locator('#m-class-scope input').check();
+        await templatePage.evaluate(() => app.ui.doCreateExam());
+        assert.deepEqual((await submitted()).classIds,['template-class']);
+        await templatePage.locator('#modal-exam button[onclick*="loadExamTemplate"]').click();
+        assert.equal(await templatePage.locator('#q-list .q-row').count(),6);
+        await templatePage.evaluate(() => app.ui.openExamTemplateManager());
+        const manager = templatePage.getByRole('dialog',{name:'校区模板管理'});
+        await manager.getByRole('status').waitFor();
+        assert.equal(await manager.getByRole('button',{name:'保存模板'}).isDisabled(),true);
+        await manager.getByRole('button',{name:'关闭'}).click();
+        await templatePage.evaluate(() => {
+            document.getElementById('modal-exam').close();
+            window.templateTestIdentity = {mode:'admin',cloudAdmin:true};
+            const libraries = new Map();
+            gk2TeacherAccounts.directoryRequest = async (route, body) => {
+                if (route==='roster') return {classes:{}};
+                const kind = new URLSearchParams(route.split('?')[1]).get('kind');
+                if (body) libraries.set(route,{...body,version:body.version+1});
+                return {templateScope:kind,...(libraries.get(route) || {templates:[],defaults:{},version:0})};
+            };
+            app.ui.openExamTemplateManager();
+        });
+        const adminManager = templatePage.getByRole('dialog',{name:'系统通用模板管理'});
+        await adminManager.locator('[data-questions] .q-row').waitFor();
+        await adminManager.getByRole('button',{name:'从旧模板复制'}).click();
+        await adminManager.getByLabel('选择源模板').selectOption('gaokao-standard');
+        await adminManager.locator('[data-name]').fill('高二期中卷');
+        await adminManager.locator('[data-stage]').selectOption('高二');
+        const manual = adminManager.locator('[data-questions] .q-manual').first();
+        await manual.check();
+        await manual.uncheck();
+        await adminManager.locator('[data-default]').check();
+        await adminManager.getByRole('button',{name:'保存模板'}).click();
+        await adminManager.getByText('已保存。更改适用于之后新建的考试。').waitFor();
+        assert.ok(await adminManager.locator('[data-default]').isChecked());
+        await templatePage.setViewportSize({width:390,height:844});
+        assert.equal(await adminManager.evaluate(dialog=>dialog.scrollWidth<=dialog.clientWidth),true);
+        console.log('PASS teacher loads the 6-section Gaokao template on the legacy API, and the admin saves a stage default.');
         assert.deepEqual(errors, []);
     } finally { await browser.close(); await new Promise(r => web.close(r)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
