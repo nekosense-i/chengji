@@ -151,9 +151,9 @@ def build(destination):
     core = (ROOT / core_path).read_text()
     core = core.replace("this.KEY = 'gakuten_data_v1';",
                         "this.KEY = window.gk2TeacherWorkspaceId ? 'gakuten_teacher_data:'+window.gk2TeacherWorkspaceId : 'gakuten_data_v1';",1)
-    core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.gk2TeacherWorkspaceId && !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
+    core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.gk2TeacherWorkspaceId && (!window.gk2TeacherAccounts?.sharedDirectoryAvailable() || window.__gakutenAuth?.getAuth()?.cloudAdmin) && !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
     core = core.replace("try{return localStorage.getItem(this.disabledKey)!=='1';}",
-                        "try{return !window.gk2TeacherWorkspaceId && !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey)!=='1';}",1)
+                        "try{return !window.gk2TeacherWorkspaceId && (!window.gk2TeacherAccounts?.sharedDirectoryAvailable() || window.__gakutenAuth?.getAuth()?.cloudAdmin) && !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey)!=='1';}",1)
     core = core.replace('if (barEl) barEl.style.width = `${pct.toFixed(1)}%`;', "if (barEl) { barEl.style.width = `${pct.toFixed(1)}%`; barEl.dataset.level = pct > 90 ? 'high' : pct >= 70 ? 'warning' : 'normal'; }", 1)
     core = core.replace("() => {\n                            this._archiveRosterStudents([id]);",
                         "async () => {\n                            if (await this._archiveRosterStudents([id]) === false) return;")
@@ -488,6 +488,8 @@ def build(destination):
     features += '\n' + (ROOT / 'src/jlpt-score-overview.js').read_text()
     features = features.replace("if(head){head.style.pointerEvents=teacher?'none':'';head.style.opacity=teacher?'.68':'';head.setAttribute('aria-disabled',String(teacher));}",
                                 "if(head){const locked=teacher&&!auth()?.sharedDirectory;head.style.pointerEvents=locked?'none':'';head.style.opacity=locked?'.68':'';head.setAttribute('aria-disabled',String(locked));}",1)
+    features = features.replace("const state=sync.connectionStatus().state;",
+                                "const state=window.__gakutenAuth?.getAuth()?.sharedDirectory ? window.gk2TeacherGradeSyncStatus?.().state || 'busy' : sync.connectionStatus().state;",1)
     features += '\n' + (ROOT / 'src/release-account.js').read_text()
     features += '\n' + (ROOT / 'src/teacher-preferences.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]

@@ -5,6 +5,7 @@
     const sectionFields = ['details','questionCounts'];
     const plainFields = ['estimatedTotal','examAbsent'];
     let inFlight, timer, conflict;
+    const meter = {state:'busy',error:'',lastPushedAt:0};
 
     function edits(before, after) {
         const baseline = new Map(before.map(score=>[key(score),score]));
@@ -35,7 +36,10 @@
 
     function status(text, tone) {
         const sync = window.app?.sync;
+        meter.state = tone === 'synced' ? 'healthy' : tone;
+        meter.error = tone === 'error' ? text : '';
         sync?.setDot(tone,text);
+        window.gk2RenderCloudLamp?.();
     }
 
     async function synchronize() {
@@ -43,6 +47,7 @@
         const {store,ui} = window.app || {};
         if (!auth?.sharedDirectory || !store || inFlight || conflict || document.hidden || !navigator.onLine) return;
         inFlight = true;
+        status('正在同步教师成绩','busy');
         const data = store.state.data;
         const before = store.state.sharedTeacherBaseline;
         const fingerprint = JSON.stringify(data.scores);
@@ -117,6 +122,9 @@
             store.rebuildScoreIndex();
             store.writeLocalState();
             if (!document.activeElement?.classList.contains('score-input') && !document.querySelector('dialog[open]')) ui.refresh();
+            else ui.pendingRemoteRefresh = true;
+            if (operationId) meter.lastPushedAt=Date.now();
+            store.state.syncMeta.lastError='';
             status('云端已确认','synced');
             if (!Number.isInteger(store.state.personalExamTemplates?.version)) ui.syncPersonalExamTemplates?.();
         } catch (error) {
@@ -132,6 +140,11 @@
         clearTimeout(timer);
         timer = setTimeout(synchronize,1600);
         return result;
+    };
+    window.gk2TeacherGradeSyncStatus = () => {
+        const state=window.app?.store?.state;
+        const pending=state?.sharedTeacherBaseline ? edits(state.sharedTeacherBaseline,state.data.scores).length : 0;
+        return {...meter,pending,busy:!!inFlight || !!conflict};
     };
     window.gk2SynchronizeTeacherGrades = synchronize;
     window.addEventListener('gk2-auth-changed',synchronize);

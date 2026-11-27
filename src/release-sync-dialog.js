@@ -40,6 +40,7 @@ window.gk2OpenSyncStatus = function () {
         'deletion-suppressed-record': '记录受到较新的删除版本压制'
     };
     let busy = false, previousMetrics, previousRecords;
+    const teacherStatus = () => window.__gakutenAuth.getAuth()?.sharedDirectory && window.gk2TeacherGradeSyncStatus?.();
     function render() {
         let count = 0;
         for (const delta of [store.pendingDelta, store._syncInFlight]) {
@@ -48,9 +49,12 @@ window.gk2OpenSyncStatus = function () {
                 count += Object.keys(delta[key] || {}).length + Object.keys(delta.deleted?.[key] || {}).length;
             }
         }
-        const enabled = sync.isEnabled();
-        const { lastPushedAt, lastError } = store.state.syncMeta;
-        const state = sync.connectionStatus().state;
+        const teacher = teacherStatus();
+        if (teacher) count = teacher.pending;
+        const enabled = !!teacher || sync.isEnabled();
+        const lastPushedAt = teacher ? teacher.lastPushedAt : store.state.syncMeta.lastPushedAt;
+        const lastError = teacher ? teacher.error : store.state.syncMeta.lastError;
+        const state = teacher ? teacher.state : sync.connectionStatus().state;
         const localStatus = store.getLocalSaveStatus();
         const metrics = [
             ['云同步', enabled ? '已开启' : '已关闭 · 仅本机保存', state],
@@ -94,16 +98,16 @@ window.gk2OpenSyncStatus = function () {
                 return p;
             }));
         }
-        pull.disabled = syncNow.disabled = !enabled || busy || sync.isPulling || sync.isPushing;
+        pull.disabled = syncNow.disabled = !enabled || busy || !navigator.onLine || (teacher ? teacher.busy : sync.isPulling || sync.isPushing);
     }
     async function run(action) {
-        if (busy || !sync.isEnabled()) return;
+        if (busy || !(teacherStatus() || sync.isEnabled())) return;
         busy = true;
         render();
         message.textContent = '正在同步…';
         try {
             await action();
-            message.textContent = store.state.syncMeta.lastError || '操作完成，数据已保存到本机';
+            message.textContent = (teacherStatus() ? teacherStatus().error : store.state.syncMeta.lastError) || '操作完成，数据已保存到本机';
         } catch (error) {
             message.textContent = error.message;
         } finally {
@@ -115,11 +119,12 @@ window.gk2OpenSyncStatus = function () {
         clearTimeout(store.saveTimeout);
         store.saveTimeout = null;
         store.writeLocalState();
-        await sync.manualSync();
+        if (teacherStatus()) await window.gk2SynchronizeTeacherGrades();
+        else await sync.manualSync();
     });
     pull.onclick = () => {
         if (confirm('重新拉取会读取云端最新数据，并按现有规则与本机修改合并。确定继续吗？')) {
-            run(() => sync.pull({ manual: true }));
+            run(() => teacherStatus() ? window.gk2SynchronizeTeacherGrades() : sync.pull({ manual: true }));
         }
     };
     dialog.querySelector('[data-sync-close]').onclick = () => dialog.close();
