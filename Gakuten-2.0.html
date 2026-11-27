@@ -673,7 +673,7 @@ window.gk2IconMarkup = function(name) {
 
     <dialog id="modal-exam-basic-info" aria-modal="true" aria-label="编辑考试基本信息" class="dialog-shell dialog--md">
         <div class="dialog-title mb-sm">编辑考试基本信息</div>
-        <p class="dialog-note gk2-exam-basic-note">这里只修改考试名称、日期和参与校区。已纳入的校区不能取消；可以新增校区。年级、题型、满分和已录入成绩保持不变。</p>
+        <p class="dialog-note gk2-exam-basic-note">这里可修改考试名称、日期、参与校区和教师登分状态。已纳入的校区不能取消；可以新增校区。年级、题型、满分和已录入成绩保持不变。</p>
         <input type="hidden" id="gk2-exam-basic-id">
         <div class="dialog-panel dialog-panel--tight">
             <div class="dialog-field-group">
@@ -688,6 +688,13 @@ window.gk2IconMarkup = function(name) {
                 <div class="field-label mb-sm">参与校区</div>
                 <label class="campus-tag-label"><input type="checkbox" id="gk2-exam-basic-all-campuses"> 全部校区</label>
                 <div id="gk2-exam-basic-campuses" class="flex-row flex-wrap gap-md p-card surface-white" style="padding:10px;"></div>
+            </div>
+            <div class="dialog-field-group" id="gk2-exam-teacher-entry-field" hidden>
+                <label class="field-label" for="gk2-exam-teacher-entry">教师登分</label>
+                <select id="gk2-exam-teacher-entry">
+                    <option value="open">开放录入</option>
+                    <option value="closed">关闭录入</option>
+                </select>
             </div>
         </div>
         <div class="dialog-footer" style="margin-top:0;">
@@ -824,7 +831,7 @@ window.gk2IconMarkup = function(name) {
         </div>
     </dialog>
 
-    <script src="assets/app/core.a74dc7e15139b984.js"></script>
+    <script src="assets/app/core.f03d25094e4818d4.js"></script>
 <script src="assets/app/features.6cef4bdb0038d8aa.js"></script>
 <script type="application/gakuten-lazy" data-gk2-lazy-js="migration" data-src="assets/app/migration.a544b6186a27763f.js"></script>
 <script type="application/gakuten-lazy" data-gk2-lazy-js="comparison" data-src="assets/app/comparison.8e2ccef9969a3647.js"></script>

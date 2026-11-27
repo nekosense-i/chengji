@@ -258,8 +258,11 @@
     UI.prototype.openEditExamBasicInfoModal = function(id) {
         const exam = this.store.state.data.exams.find(e => e.id === id);
         if (!exam || !this._examVisible(exam)) return;
+        const isAdmin = this._getAuth()?.mode === 'admin';
+        document.getElementById('gk2-exam-teacher-entry-field').hidden = !isAdmin;
+        document.getElementById('gk2-exam-teacher-entry').value = exam.entryClosed ? 'closed' : 'open';
         const result = openBasic.call(this, id);
-        if (this._getAuth()?.mode === 'admin') {
+        if (isAdmin) {
             const dialog = document.getElementById('gk2-exam-basic-campuses')?.closest('dialog');
             dialog?.querySelector('[data-edit-exam-scope]')?.remove();
             if (dialog) {
@@ -270,6 +273,39 @@
                 button.textContent = '编辑参与日语班';
                 button.onclick = () => { dialog.close(); this.openEditExamModal(id); };
                 document.getElementById('gk2-exam-basic-campuses').after(button);
+            }
+        }
+        return result;
+    };
+    function teacherEntryClosed(ui,id) {
+        return ui._getAuth()?.mode === 'teacher' && ui.store.state.data.exams.find(exam=>exam.id===id)?.entryClosed === true;
+    }
+    for (const name of ['saveVal','saveCorrectCount','saveEstimated','toggleExamAbsent']) {
+        const original = UI.prototype[name];
+        UI.prototype[name] = function (...args) {
+            if (teacherEntryClosed(this,args[1])) {
+                Utils.msg('本场考试已关闭教师登分。','error');
+                return false;
+            }
+            return original.apply(this,args);
+        };
+    }
+    const renderExamTables = UI.prototype.renderExamTables;
+    UI.prototype.renderExamTables = function (id) {
+        const result = renderExamTables.call(this,id);
+        if (teacherEntryClosed(this,id)) {
+            const fields = [...document.querySelectorAll('#view-exams .score-input[data-eid]')].filter(input=>input.dataset.eid===id);
+            for (const input of fields) {
+                input.readOnly = true;
+                input.title = '本场考试已关闭教师登分';
+            }
+            const panel = fields[0]?.closest('table');
+            if (panel && !panel.previousElementSibling?.matches('[data-teacher-entry-closed]')) {
+                const note = document.createElement('p');
+                note.className = 'dialog-note';
+                note.dataset.teacherEntryClosed = '';
+                note.textContent = '本场考试已关闭教师登分，成绩仍可查看。';
+                panel.before(note);
             }
         }
         return result;
