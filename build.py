@@ -65,14 +65,14 @@ def build(destination):
         r'''const url=new URL(typeof input==='string'?input:input.url,location.href),method=String(options.method||input?.method||'GET').toUpperCase();
   if (location.protocol==='file:' && url.origin==='https://gakupo.nekosensei.cn' &&
       !url.username && !url.password && !url.search && !url.hash &&
-      (/^\/api\/(roster|roster-import|teachers)$/.test(url.pathname) && ['GET','POST'].includes(method) ||
+      (/^\/api\/(roster|roster-import|teachers|gakuten-templates)$/.test(url.pathname) && ['GET','POST'].includes(method) ||
        url.pathname==='/api/session' && ['POST','DELETE'].includes(method))) {
     return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
   }
   if (location.protocol==='file:' && url.href==='https://chengji.nekosensei.cn/gakuten-teacher-grades' &&
       ['GET','POST'].includes(method)) return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
   if (url.origin===location.origin && location.hostname==='chengji.nekosensei.cn' && !url.search && !url.hash && (
-      /^\/gakupo-directory\/(session|roster|roster-import|teachers)$/.test(url.pathname) &&
+      /^\/gakupo-directory\/(session|roster|roster-import|teachers|gakuten-templates)$/.test(url.pathname) &&
           (['GET','POST'].includes(method) || method==='DELETE' && url.pathname.endsWith('/session')) ||
       url.pathname==='/gakuten-teacher-grades' && ['GET','POST'].includes(method)
   )) return nativeFetch(input,{...options,redirect:'error',credentials:'same-origin'});''',1)
@@ -340,7 +340,7 @@ def build(destination):
     core = core.replace(
         '            return { Store, Sync, UI };',
         '\n'.join((ROOT / 'src' / name).read_text() for name in (
-            'interaction-optimizations.js', 'shared-roster.js', 'shared-roster-ui.js', 'shared-teacher-grades.js'
+            'interaction-optimizations.js', 'shared-roster.js', 'shared-roster-ui.js', 'shared-teacher-grades.js', 'personal-exam-templates.js'
         )) + '\n            return { Store, Sync, UI };',
         1,
     )

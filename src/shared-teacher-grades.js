@@ -108,6 +108,7 @@
                 throw Error('云端成绩格式无效，本机修改已保留');
             }
             if (JSON.stringify(store.state.data.scores) !== fingerprint) return;
+            snapshot.data.examTemplates = snapshot.data.examTemplates.concat(store.state.personalExamTemplates?.templates || []);
             store.state.data = snapshot.data;
             store.state.sharedTeacherBaseline = structuredClone(snapshot.data.scores);
             store.pendingDelta = null;
@@ -117,6 +118,7 @@
             store.writeLocalState();
             if (!document.activeElement?.classList.contains('score-input') && !document.querySelector('dialog[open]')) ui.refresh();
             status('云端已确认','synced');
+            if (!Number.isInteger(store.state.personalExamTemplates?.version)) ui.syncPersonalExamTemplates?.();
         } catch (error) {
             status(error.message+'。本机修改已保留。','error');
         } finally {

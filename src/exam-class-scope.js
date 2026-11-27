@@ -83,6 +83,11 @@
     ];
     function preferredTemplate(ui, campus, grade, name) {
         const scope = classKey(campus, grade, name);
+        if (ui._getAuth()?.sharedDirectory) {
+            const id = ui.store.state.personalExamTemplates?.defaults?.[scope];
+            return templatesFor(ui).find(template=>template.id===id) ||
+                templatesFor(ui).find(template=>template.schoolPublished && template.isDefault);
+        }
         const latest = ui.store.state.data.students.reduce((best, student) => {
             const preference = student.classExamTemplate;
             const current = classKey(student.campus, student.grade, student.teachingClass);
@@ -94,7 +99,7 @@
     const editGroup = UI.prototype.editStudentGroup;
     UI.prototype.editStudentGroup = function(kind, name, campus, grade) {
         const result = editGroup.call(this, kind, name, campus, grade);
-        if (kind !== 'teachingClass') return result;
+        if (kind !== 'teachingClass' || this._getAuth()?.sharedDirectory) return result;
         const dialog = document.querySelector('.gk2-roster-group-dialog[open]');
         const field = dialog?.querySelector('.gk2-roster-group-field');
         if (!field) return result;
