@@ -133,6 +133,7 @@
         timer = setTimeout(synchronize,1600);
         return result;
     };
+    window.gk2SynchronizeTeacherGrades = synchronize;
     window.addEventListener('gk2-auth-changed',synchronize);
     window.addEventListener('online',synchronize);
     window.addEventListener('focus',synchronize);

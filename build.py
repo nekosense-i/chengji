@@ -137,6 +137,7 @@ def build(destination):
                     }
                     applyAuthToUI();
                     window.app?.ui?.refresh?.();
+                    window.gk2SynchronizeTeacherGrades?.();
                 } catch (error) {
                     setErrorVisible(true, '暂时无法连接云端教师账号，请重试。');
                 }
@@ -151,6 +152,8 @@ def build(destination):
     core = core.replace("this.KEY = 'gakuten_data_v1';",
                         "this.KEY = window.gk2TeacherWorkspaceId ? 'gakuten_teacher_data:'+window.gk2TeacherWorkspaceId : 'gakuten_data_v1';",1)
     core = core.replace("try { return localStorage.getItem(this.disabledKey) !== '1'; }", "try { return !window.gk2TeacherWorkspaceId && !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey) !== '1'; }", 1)
+    core = core.replace("try{return localStorage.getItem(this.disabledKey)!=='1';}",
+                        "try{return !window.gk2TeacherWorkspaceId && !window.__gakutenAuth?.getAuth()?.teacherId && localStorage.getItem(this.disabledKey)!=='1';}",1)
     core = core.replace('if (barEl) barEl.style.width = `${pct.toFixed(1)}%`;', "if (barEl) { barEl.style.width = `${pct.toFixed(1)}%`; barEl.dataset.level = pct > 90 ? 'high' : pct >= 70 ? 'warning' : 'normal'; }", 1)
     core = core.replace("() => {\n                            this._archiveRosterStudents([id]);",
                         "async () => {\n                            if (await this._archiveRosterStudents([id]) === false) return;")
