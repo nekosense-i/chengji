@@ -81,7 +81,11 @@
                 });
                 if (!this.isEnabled() || epoch !== (this._legacyEpoch || 0)) throw Error('同步已暂停，未继续确认返回数据');
                 if (!response.ok) {
-                    const e = Error('云端' + (method === 'GET' ? '读取' : '保存') + '失败：HTTP ' + response.status);
+                    const detail = await response.json().catch(() => null);
+                    const fallback = response.status === 401 || response.status === 403
+                        ? '云端管理员会话已失效，请重新登录；本机修改已保留'
+                        : '云端' + (method === 'GET' ? '读取' : '保存') + '失败：HTTP ' + response.status;
+                    const e = Error(response.status === 401 || response.status === 403 ? fallback : detail?.error || fallback);
                     e.status = response.status;
                     if (response.status === 409 || response.status === 412) e.code = 'STALE_CLOUD_VERSION';
                     throw e;
@@ -187,6 +191,11 @@
         this.store.saveTimeout = null;
         this.store.writeLocalState();
         this._retryAt = 0;
+        const started=Date.now();
+        while (this.isPulling || this.isPushing) {
+            if (Date.now()-started>18000) throw Error('上一轮同步仍未完成，本机修改已保留。');
+            await new Promise(resolve=>setTimeout(resolve,120));
+        }
         if (this.store.hasPendingDelta()) await this._push();
         else await this.pull({ manual: true });
     };

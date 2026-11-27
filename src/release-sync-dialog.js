@@ -61,7 +61,7 @@ window.gk2OpenSyncStatus = function () {
             ['本机保存', localStatus, store._syncLocalError ? 'error' : 'healthy'],
             ['待上传操作', count + ' 项', count ? 'pending' : 'neutral'],
             ['最近上传确认', lastPushedAt ? new Date(lastPushedAt).toLocaleString() : '暂无', 'neutral'],
-            ['同步结果', lastError || '无错误', lastError ? 'error' : 'healthy']
+            ['同步结果', lastError || (state === 'busy' ? '正在等待云端确认' : count ? '本机修改等待上传' : '无错误'), lastError ? 'error' : 'healthy']
         ];
         const signature = JSON.stringify(metrics);
         if (signature !== previousMetrics) {
@@ -124,7 +124,7 @@ window.gk2OpenSyncStatus = function () {
     });
     pull.onclick = () => {
         if (confirm('重新拉取会读取云端最新数据，并按现有规则与本机修改合并。确定继续吗？')) {
-            run(() => teacherStatus() ? window.gk2SynchronizeTeacherGrades() : sync.pull({ manual: true }));
+            run(() => teacherStatus() ? window.gk2SynchronizeTeacherGrades() : sync.manualSync());
         }
     };
     dialog.querySelector('[data-sync-close]').onclick = () => dialog.close();

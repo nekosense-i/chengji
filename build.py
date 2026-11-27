@@ -303,6 +303,13 @@ def build(destination):
                 place.teachingCategory===sharedSource.teachingCategory);
         const examCampuses = this._getExamCampuses(e);''',1)
     core = core[:dropdown_start]+dropdown+core[dropdown_end:]
+    merge_anchor = 'const ack=await this.postCloud(merged,d);'
+    if core.count(merge_anchor) != 1:
+        raise RuntimeError('Sync merge anchor changed')
+    core = core.replace(merge_anchor,'''const dataUnchanged=kinds.every(k=>
+      JSON.stringify(merged.data[k])===JSON.stringify(remote.data[k]) &&
+      JSON.stringify(merged.deleted[k]||{})===JSON.stringify(remote.deleted[k]||{}));
+    const ack=dataUnchanged ? remote : await this.postCloud(merged,d);''',1)
     basic_save = "                    exam.campus = allCampuses ? '' : campuses[0];"
     if core.count(basic_save) != 1:
         raise RuntimeError('Exam basic info save anchor changed')
