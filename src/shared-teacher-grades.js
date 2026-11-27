@@ -86,6 +86,8 @@
         for (const change of before ? edits(before,data.scores) : []) pending.set(cell(change),change);
         try {
             const current = await window.gk2TeacherAccounts.restoreSharedSession(auth);
+            if (identity()?.teacherId !== auth.teacherId || identity()?.campus !== auth.campus ||
+                identity()?.grade !== auth.grade || identity()?.classId !== auth.classId) return;
             if (!current) {
                 window.__gakutenAuth.clearAuth();
                 location.reload();

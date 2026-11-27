@@ -67,6 +67,7 @@
         if (user.role !== 'teacher' || !user.active) return null;
         return {
             ...user,
+            classInfo: Object.values(classes).map(({info}) => info),
             classes: Object.values(classes).map(({info}) => classKey(info.campus, info.grade, info.teachingClass))
         };
     }
@@ -154,6 +155,22 @@
         },
         classScopes(identity) {
             return currentTeacher(identity)?.classes || [];
+        },
+        classInfo(identity) {
+            return currentTeacher(identity)?.classInfo || [];
+        },
+        selectScope(identity, info) {
+            const teacher = currentTeacher(identity);
+            const scope = classKey(info.campus, info.grade, info.teachingClass);
+            if (!teacher?.classes.includes(scope)) return false;
+            window.__gakutenAuth.saveAuth(session(teacher, scope));
+            const ui = window.app.ui;
+            ui.store.state.globalFocus = {campuses:[info.campus],grades:[info.grade],phases:[],tClasses:[],tags:[]};
+            ui.store.writeLocalState();
+            ui.initGlobalFilters();
+            ui.initGlobalExamsDropdown(true, ui.cur !== 'analysis');
+            ui.refresh();
+            return true;
         },
         renderClasses(container, identity, showSingle = false) {
             container.replaceChildren();

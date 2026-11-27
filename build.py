@@ -203,11 +203,20 @@ def build(destination):
                             return;
                         }
                         if (this._rosterImporting) return;''', 1)
+    core = core.replace("                        focus.tClasses = [auth.classId];", "                        if (!auth.sharedDirectory) focus.tClasses = [auth.classId];", 1)
+    access_anchor = "                    const focus = this.store.state.globalFocus || { campuses: [], grades: [], phases: [], tClasses: [], tags: [] };"
+    access_start = core.index('                applyAuthAccessControl(auth = null) {')
+    access_end = core.index('                _readSidebarFocusFromDom(', access_start)
+    access = core[access_start:access_end]
+    if access.count(access_anchor) != 1:
+        raise RuntimeError('Teacher access control anchor changed')
+    access = access.replace(access_anchor, "                    if (currentAuth.sharedDirectory) return;\n" + access_anchor, 1)
+    core = core[:access_start] + access + core[access_end:]
     class_filter = "                    this._decorateSidebarFilterFeedback();"
     if core.count(class_filter) != 1:
         raise RuntimeError('Teacher class filter anchor changed')
     core = core.replace(class_filter, class_filter + '''
-                    if (auth?.sharedDirectory) {
+                    if (auth?.sharedDirectory && this.cur === 'students') {
                         window.gk2TeacherAccounts.renderClasses(document.getElementById('sb-cls-panel'),auth,true);
                     }''',1)
     roster_start = core.index('                renderStudents()')
@@ -420,6 +429,14 @@ def build(destination):
     core = core.replace(total_anchor, '  this._mergeDerivedTotal(a,b,out);\n' + total_anchor, 1)
     features_path = re.search(r'assets/app/features\.[a-f0-9]+\.js', html)[0]
     features = (ROOT / features_path).read_text()
+    teacher_match = "const teacherMatch=s=>{const a=auth();return a?.mode!=='teacher'||(s.campus===a.campus&&s.grade===a.grade&&s.teachingClass===a.classId);};"
+    if features.count(teacher_match) != 1:
+        raise RuntimeError('Teacher detail scope anchor changed')
+    features = features.replace(teacher_match, "const teacherMatch=s=>{const a=auth();if(a?.sharedDirectory){const ui=window.app?.ui,exam=ui?.store.state.data.exams.find(e=>e.id===ui.store.state.currentExamId);return !!exam&&window.gk2Policy.studentForExam(s,exam);}return a?.mode!=='teacher'||(s.campus===a.campus&&s.grade===a.grade&&s.teachingClass===a.classId);};", 1)
+    detail_scope = "if(auth?.mode==='teacher'&&(student.campus!==auth.campus||student.grade!==auth.grade||(position.teachingClass!==auth.classId&&student.teachingClass!==auth.classId)))return false;"
+    if features.count(detail_scope) != 1:
+        raise RuntimeError('Exam information scope anchor changed')
+    features = features.replace(detail_scope, "if(auth?.sharedDirectory ? !window.gk2Policy.studentForExam(student,exam) : auth?.mode==='teacher'&&(student.campus!==auth.campus||student.grade!==auth.grade||(position.teachingClass!==auth.classId&&student.teachingClass!==auth.classId)))return false;", 1)
     teacher_overview = "const roster=ex=>scopedStudents(ex).filter(teacherMatch);"
     if features.count(teacher_overview) != 1:
         raise RuntimeError('Overview teacher scope anchor changed')
@@ -428,6 +445,10 @@ def build(destination):
     if features.count(grade_scope) != 1:
         raise RuntimeError('Overview grade scope anchor changed')
     features = features.replace(grade_scope, "s.grade!==exam.grade||(!auth()?.sharedDirectory&&!teacherMatch(s))||!window.gk2Policy.studentForExam(s,exam)", 1)
+    callback_anchor = "  if(callback==='window.app.ui.runAnalysis()')return ui.runAnalysis();"
+    if features.count(callback_anchor) != 1:
+        raise RuntimeError('Teacher filter callback anchor changed')
+    features = features.replace(callback_anchor, "  if(callback===\"window.app.ui.changeTeacherGroup('campus')\")return ui.changeTeacherGroup('campus');\n  if(callback===\"window.app.ui.changeTeacherGroup('grade')\")return ui.changeTeacherGroup('grade');\n" + callback_anchor, 1)
     replacements = {
         "const state=!sync.isEnabled()?'paused':navigator.onLine===false?'error':sync._lampActive?'busy':sync._lampState||'busy';": "const state=sync.connectionStatus().state;",
         "const toggle=button(sync.isEnabled()?": "const toggle=window.gk2ReleaseTest || window.__gakutenAuth?.getAuth()?.teacherId ? null : button(sync.isEnabled()?",

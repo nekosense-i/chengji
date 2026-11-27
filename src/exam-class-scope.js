@@ -13,33 +13,90 @@
         return !!group && !!place && place.campus===(group.examCampus || group.campus) && place.grade===(group.examGrade || group.grade) &&
             place.teachingCategory===group.teachingCategory;
     }
-    UI.prototype.sharedExamClassChoices = function (auth) {
-        if (!['analysis','details','workbench'].includes(this.cur)) return null;
-        const exam = this.store.state.data.exams.find(item=>item.id===this.store.state.currentExamId);
-        const group = currentTeachingGroup(exam,auth);
-        if (!group) return null;
-        const rows = Object.values(exam.teacherParticipants).filter(place=>place.campus===(group.examCampus || group.campus) &&
-            place.grade===(group.examGrade || group.grade) && place.teachingCategory===group.teachingCategory);
-        return {examId:exam.id,defaultClass:group.examClass || auth.classId,classes:[...new Set(rows.map(row=>row.teachingClass))]};
-    };
     const matchFocus = UI.prototype._studentMatchesFocusForExam;
     UI.prototype._studentMatchesFocusForExam = function (student,exam,focus = this.store.state.globalFocus || {}) {
-        const selected = this.sharedExamClassFilter;
         const group = currentTeachingGroup(exam,this._getAuth());
         if (group) {
-            const className = exam.id===selected?.examId ? selected.className : group.examClass || group.teachingClass;
             return !!student && matchFocus.call(this,student,exam,{
-                ...focus,campuses:[],grades:[],tClasses:className ? [className] : []
+                ...focus,campuses:[],grades:[]
             });
         }
         return matchFocus.call(this,student,exam,focus);
     };
-    const examChange = UI.prototype.onGlobalExamChange;
-    UI.prototype.onGlobalExamChange = function (...args) {
-        const result = examChange.apply(this,args);
+    const initFilters = UI.prototype.initGlobalFilters;
+    UI.prototype.initGlobalFilters = function (...args) {
         const auth = this._getAuth();
-        if (auth?.sharedDirectory) window.gk2TeacherAccounts.renderClasses(document.getElementById('sb-cls-panel'),auth,true);
+        if (!auth?.sharedDirectory) return initFilters.apply(this,args);
+        const focus = this.store.state.globalFocus;
+        const scope = JSON.stringify([auth.campus,auth.grade,auth.classId]);
+        if (this._teacherFilterScope !== scope) {
+            focus.tClasses = [];
+            this._teacherFilterScope = scope;
+        }
+        const result = initFilters.apply(this,args);
+        if (this.cur === 'students') {
+            const category = document.getElementById('gk2-teacher-category');
+            if (category) category.hidden = true;
+            return result;
+        }
+        const info = window.gk2TeacherAccounts.classInfo(auth);
+        const active = info.find(row=>row.campus===auth.campus && row.grade===auth.grade && row.teachingClass===auth.classId);
+        if (!active) return result;
+        const group = row=>row.campus===auth.campus && row.grade===auth.grade && row.teachingCategory===active.teachingCategory;
+        const names = new Set();
+        for (const exam of this.store.state.data.exams) {
+            const source = currentTeachingGroup(exam,auth);
+            if (!source) continue;
+            for (const place of Object.values(exam.teacherParticipants)) {
+                if (place.campus===(source.examCampus || source.campus) && place.grade===(source.examGrade || source.grade) &&
+                    place.teachingCategory===source.teachingCategory) names.add(place.teachingClass);
+            }
+        }
+        for (const row of info.filter(group)) names.add(row.teachingClass);
+        const options = [...names].sort((a,b)=>a.localeCompare(b,'zh-CN',{numeric:true}));
+        focus.tClasses = (focus.tClasses || []).filter(name=>names.has(name));
+        document.getElementById('sb-cls-panel').replaceChildren();
+        this._buildMultiSelect('sb-cls-panel','sb-cls-head',options,"window.app.ui.onGlobalFilterChange('tClasses')",'查看全班级',false,focus.tClasses,true);
+        document.querySelectorAll('#sb-cls-panel input[type=checkbox]').forEach(input=>{ input.checked=focus.tClasses.includes(input.value); });
+        this._updateMsHeader('sb-cls-panel','sb-cls-head','查看全班级',false);
+        const campuses = [...new Set(info.map(row=>row.campus))];
+        const grades = [...new Set(info.filter(row=>row.campus===auth.campus).map(row=>row.grade))];
+        document.getElementById('sb-cam-panel').replaceChildren();
+        document.getElementById('sb-grd-panel').replaceChildren();
+        this._buildMultiSelect('sb-cam-panel','sb-cam-head',campuses,"window.app.ui.changeTeacherGroup('campus')",'选择校区',false,[auth.campus],true,false,true);
+        this._buildMultiSelect('sb-grd-panel','sb-grd-head',grades,"window.app.ui.changeTeacherGroup('grade')",'选择年级',false,[auth.grade],true,false,true);
+        for (const id of ['sb-cam-head','sb-grd-head','sb-cls-head']) {
+            const head=document.getElementById(id);
+            head.style.pointerEvents=''; head.style.opacity=''; head.removeAttribute('aria-disabled');
+        }
+        let category = document.getElementById('gk2-teacher-category');
+        const categories = [...new Set(info.filter(row=>row.campus===auth.campus && row.grade===auth.grade).map(row=>row.teachingCategory))];
+        if (!category) {
+            category = document.createElement('select');
+            category.id = 'gk2-teacher-category';
+            category.className = 'sidebar-ms';
+            category.setAttribute('aria-label','班级类型');
+            document.getElementById('sb-grd-wrap').parentElement.after(category);
+            category.onchange = () => this.changeTeacherGroup('category');
+        }
+        category.replaceChildren(...categories.map(value=>{
+            const option=document.createElement('option');
+            option.value=value;
+            option.textContent=value==='study-abroad'?'留学班':value==='gaokao'?'高考日语班':'未分类';
+            return option;
+        }));
+        category.value=active.teachingCategory;
+        category.hidden=categories.length<2;
         return result;
+    };
+    UI.prototype.changeTeacherGroup = function (kind) {
+        const auth=this._getAuth(), info=window.gk2TeacherAccounts.classInfo(auth);
+        const campus=kind==='campus' ? this._getSelectedClasses('sb-cam-panel')[0] : auth.campus;
+        const grade=kind==='grade' ? this._getSelectedClasses('sb-grd-panel')[0] : auth.grade;
+        const category=kind==='category' ? document.getElementById('gk2-teacher-category').value : null;
+        let candidate=info.find(row=>row.campus===campus && (kind==='campus' || row.grade===grade) && (!category || row.teachingCategory===category));
+        if (!candidate) { this.initGlobalFilters(); return; }
+        window.gk2TeacherAccounts.selectScope(auth,candidate);
     };
     function frozenPlace(student,exam) {
         if (!student || !exam?.sharedParticipants) return null;
