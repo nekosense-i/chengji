@@ -10,7 +10,7 @@
     function sharedExamStudent(student, exam, auth) {
         const group = currentTeachingGroup(exam,auth);
         const place = exam.teacherParticipants[student.id];
-        return !!group && !!place && place.campus===group.campus && place.grade===group.grade &&
+        return !!group && !!place && place.campus===(group.examCampus || group.campus) && place.grade===(group.examGrade || group.grade) &&
             place.teachingCategory===group.teachingCategory;
     }
     UI.prototype.sharedExamClassChoices = function (auth) {
@@ -18,16 +18,18 @@
         const exam = this.store.state.data.exams.find(item=>item.id===this.store.state.currentExamId);
         const group = currentTeachingGroup(exam,auth);
         if (!group) return null;
-        const rows = Object.values(exam.teacherParticipants).filter(place=>place.campus===group.campus &&
-            place.grade===group.grade && place.teachingCategory===group.teachingCategory);
-        return {examId:exam.id,classes:[...new Set(rows.map(row=>row.teachingClass))]};
+        const rows = Object.values(exam.teacherParticipants).filter(place=>place.campus===(group.examCampus || group.campus) &&
+            place.grade===(group.examGrade || group.grade) && place.teachingCategory===group.teachingCategory);
+        return {examId:exam.id,defaultClass:group.examClass || auth.classId,classes:[...new Set(rows.map(row=>row.teachingClass))]};
     };
     const matchFocus = UI.prototype._studentMatchesFocusForExam;
     UI.prototype._studentMatchesFocusForExam = function (student,exam,focus = this.store.state.globalFocus || {}) {
         const selected = this.sharedExamClassFilter;
-        if (exam?.id && exam.id===selected?.examId && currentTeachingGroup(exam,this._getAuth())) {
+        const group = currentTeachingGroup(exam,this._getAuth());
+        if (group) {
+            const className = exam.id===selected?.examId ? selected.className : group.examClass || group.teachingClass;
             return !!student && matchFocus.call(this,student,exam,{
-                ...focus,grades:[],tClasses:selected.className ? [selected.className] : []
+                ...focus,campuses:[],grades:[],tClasses:className ? [className] : []
             });
         }
         return matchFocus.call(this,student,exam,focus);

@@ -165,7 +165,7 @@
             const examView = showSingle && ui.sharedExamClassChoices?.(identity);
             if (examView) {
                 const filter = ui.sharedExamClassFilter;
-                const selected = filter?.examId === examView.examId ? filter.className : identity.classId;
+                const selected = filter?.examId === examView.examId ? filter.className : examView.defaultClass;
                 for (const name of ['', ...examView.classes]) {
                     const button = document.createElement('button');
                     button.type = 'button';

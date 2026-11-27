@@ -291,6 +291,18 @@ def build(destination):
                         return Utils.msg('请先补齐该考试的参试范围，再归档。','error');
                     }
                     // Keep grade and score data unchanged;''',1)
+    dropdown_start = core.index("                initGlobalExamsDropdown(")
+    dropdown_end = core.index("                onGlobalExamChange()",dropdown_start)
+    dropdown = core[dropdown_start:dropdown_end]
+    dropdown = dropdown.replace('        const examCampuses = this._getExamCampuses(e);', '''        const auth = this._getAuth();
+        const sharedSource = auth?.sharedDirectory && e.teacherSources?.find(info=>info.campus===auth.campus &&
+            info.grade===auth.grade && info.teachingClass===auth.classId);
+        if (sharedSource) return !focus.tClasses.length || Object.values(e.teacherParticipants || {})
+            .some(place=>place.teachingClass===(sharedSource.examClass || auth.classId) &&
+                place.campus===(sharedSource.examCampus || auth.campus) &&
+                place.teachingCategory===sharedSource.teachingCategory);
+        const examCampuses = this._getExamCampuses(e);''',1)
+    core = core[:dropdown_start]+dropdown+core[dropdown_end:]
     basic_save = "                    exam.campus = allCampuses ? '' : campuses[0];"
     if core.count(basic_save) != 1:
         raise RuntimeError('Exam basic info save anchor changed')
