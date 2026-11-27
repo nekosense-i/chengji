@@ -165,6 +165,7 @@
             }
             if (identity()?.teacherId !== auth.teacherId || JSON.stringify(store.state.data.scores) !== fingerprint) return;
             snapshot.data.examTemplates = snapshot.data.examTemplates.concat(store.state.personalExamTemplates?.templates || []);
+            const dataChanged = JSON.stringify(data) !== JSON.stringify(snapshot.data);
             const previousHeld = store.state.sharedTeacherHeldChanges;
             store.state.sharedTeacherHeldChanges = heldChanges;
             store.state.data = snapshot.data;
@@ -181,8 +182,10 @@
             store._syncInFlight = null;
             store.lastLocalDataSnapshot = store.cloneSyncState();
             store.rebuildScoreIndex();
-            if (!document.activeElement?.classList.contains('score-input') && !document.querySelector('dialog[open]')) ui.refresh();
-            else ui.pendingRemoteRefresh = true;
+            if (dataChanged) {
+                if (!document.activeElement?.classList.contains('score-input') && !document.querySelector('dialog[open]')) ui.refresh();
+                else ui.pendingRemoteRefresh = true;
+            }
             if (operationId) meter.lastPushedAt=Date.now();
             store.state.syncMeta.lastError='';
             status(heldChanges.length ? '云端已连接，部分修改仅保留在本机' : '云端已确认','synced');
@@ -207,6 +210,8 @@
         return {...meter,pending,held:state?.sharedTeacherHeldChanges?.length || 0,busy:!!inFlight || !!conflict};
     };
     window.gk2SynchronizeTeacherGrades = synchronize;
+    window.addEventListener('load',()=>setTimeout(synchronize,0),{once:true});
+    document.addEventListener('visibilitychange',()=>{ if (!document.hidden) synchronize(); });
     window.addEventListener('gk2-auth-changed',synchronize);
     window.addEventListener('online',synchronize);
     window.addEventListener('focus',synchronize);
