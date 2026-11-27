@@ -5,7 +5,7 @@
     const cell = ({studentId,examId,field,part}) => JSON.stringify([studentId,examId,field,part]);
     const sectionFields = ['details','questionCounts'];
     const plainFields = ['estimatedTotal','examAbsent'];
-    let inFlight, timer, conflict, lastCloudContent;
+    let inFlight, timer, conflict, lastCloudContent, examWriteVersion = 0, refreshAfterSync = false;
     const meter = {state:'busy',error:'',lastPushedAt:0};
 
     function edits(before, after) {
@@ -109,6 +109,7 @@
         const data = store.state.data;
         const before = store.state.sharedTeacherBaseline;
         const fingerprint = JSON.stringify(data.scores);
+        const examVersion = examWriteVersion;
         try {
             const current = await window.gk2TeacherAccounts.restoreSharedSession(auth);
             if (identity()?.teacherId !== auth.teacherId || identity()?.campus !== auth.campus ||
@@ -137,7 +138,8 @@
             const payload = await read.json();
             if (!read.ok) throw Error(payload.error || '云端成绩读取失败');
             let snapshot = readSnapshot(payload);
-            if (identity()?.teacherId !== auth.teacherId || JSON.stringify(store.state.data.scores) !== fingerprint) return;
+            if (examVersion !== examWriteVersion || identity()?.teacherId !== auth.teacherId ||
+                JSON.stringify(store.state.data.scores) !== fingerprint) return;
             const students = new Map(snapshot.data.students.map(student=>[student.id,student]));
             const exams = new Map(snapshot.data.exams.map(exam=>[exam.id,exam]));
             const cloudScores = new Map(snapshot.data.scores.map(score=>[key(score),score]));
@@ -192,7 +194,8 @@
                 if (body.operationId !== operationId) throw Error('未收到本次录分的云端确认');
                 snapshot = readSnapshot(body.snapshot);
             }
-            if (identity()?.teacherId !== auth.teacherId || JSON.stringify(store.state.data.scores) !== fingerprint) return;
+            if (examVersion !== examWriteVersion || identity()?.teacherId !== auth.teacherId ||
+                JSON.stringify(store.state.data.scores) !== fingerprint) return;
             const cloudContent = JSON.stringify(snapshot.data);
             ui.teacherExamClasses = snapshot.examClasses || [];
             snapshot.data.examTemplates = snapshot.data.examTemplates.concat(store.state.personalExamTemplates?.templates || []);
@@ -228,6 +231,10 @@
             status(error.message+'。本机修改已保留。','error');
         } finally {
             inFlight = false;
+            if (refreshAfterSync) {
+                refreshAfterSync = false;
+                synchronize();
+            }
         }
     }
 
@@ -245,14 +252,30 @@
     };
     window.gk2SynchronizeTeacherGrades = synchronize;
     const deleteExam = UI.prototype.deleteExam;
-    UI.prototype.deleteExam = function (id) {
+    UI.prototype.deleteExam = async function (id) {
         if (!identity()?.sharedDirectory) return deleteExam.call(this,id);
-        const exam = this.store.state.data.exams.find(row=>row.id===id);
-        if (!exam) return;
-        if (exam.archivedAt) return Utils.msg('已归档考试不能删除','error');
-        const scoreCount = this.store.state.data.scores.filter(row=>row.examId===id).length;
-        this.showConfirmDialog(`将「${exam.name}」及其 ${scoreCount} 条成绩删除。删除结果会同步到其他设备。`,()=>
-            this.submitTeacherExamChange({action:'delete-exam',examId:id,expectedVersion:exam._ts}),'确认删除');
+        if (this.teacherExamSaving || this.teacherExamChecking) return;
+        this.teacherExamChecking = true;
+        const auth = identity();
+        try {
+            const response = await window.gk2TeacherAccounts.gradeRequest({
+                cache:'no-store',signal:AbortSignal.timeout(12000)
+            });
+            const payload = await response.json();
+            if (!response.ok) throw Error(payload.error || '无法核对云端考试，请稍后重试');
+            if (JSON.stringify(identity()) !== JSON.stringify(auth)) return;
+            const {data} = readSnapshot(payload);
+            const exam = data.exams.find(row=>row.id===id);
+            if (!exam) throw Error('云端已找不到这场考试，或该考试已超出当前授权范围');
+            if (exam.archivedAt) throw Error('已归档考试不能删除');
+            const scoreCount = data.scores.filter(row=>row.examId===id).length;
+            this.showConfirmDialog(`将「${exam.name}」及其 ${scoreCount} 条成绩删除。删除结果会同步到其他设备。`,()=>
+                this.submitTeacherExamChange({action:'delete-exam',examId:id,expectedVersion:exam._ts}),'确认删除');
+        } catch (error) {
+            Utils.msg(error.message,'error');
+        } finally {
+            this.teacherExamChecking = false;
+        }
     };
     const saveExamBasicInfo = UI.prototype.saveExamBasicInfo;
     UI.prototype.saveExamBasicInfo = function () {
@@ -272,20 +295,27 @@
         if (this.teacherExamSaving) return;
         this.teacherExamSaving = true;
         try {
+            const operationId = crypto.randomUUID();
             const response = await window.gk2TeacherAccounts.gradeRequest({
                 method:'POST',headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({...request,operationId:crypto.randomUUID()})
+                signal:AbortSignal.timeout(12000),body:JSON.stringify({...request,operationId})
             });
             const result = await response.json();
             if (!response.ok) {
                 if (request.action==='create-exam' && response.status===400 && result.error==='成绩提交格式无效') {
                     throw Error('当前云端版本尚未启用教师建考。考试未创建，表单内容已保留。');
                 }
+                if (request.action==='delete-exam' && response.status===409 && result.error==='考试已被修改，请同步后重试') {
+                    throw Error('确认期间考试在云端发生了变化。请重新点「删除此场考试」核对后再确认。');
+                }
                 throw Error(result.error || '考试保存失败');
             }
+            if (result.operationId !== operationId) throw Error('未收到本次考试操作的云端确认，请重新核对');
+            examWriteVersion++;
             dialog?.close();
             Utils.msg(request.action==='delete-exam' ? '考试已删除' : '考试更新已由云端确认');
-            await synchronize();
+            if (inFlight) refreshAfterSync = true;
+            else await synchronize();
         } catch (error) {
             Utils.msg(error.message,'error');
         } finally {
