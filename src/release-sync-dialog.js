@@ -23,6 +23,7 @@ window.gk2OpenSyncStatus = function () {
     <p role="status" class="gk2-sync-feedback"></p>
     <div class="gk2-settings-footer gk2-sync-footer">
         <button type="button" class="secondary" data-sync-pull>重新拉取云端数据</button>
+        <button type="button" class="secondary" data-sync-export hidden>导出暂留记录</button>
         <button type="button" class="secondary" data-sync-close>关闭</button>
         <button type="button" class="gk2-settings-primary" data-sync-now>立即同步</button>
     </div>`;
@@ -33,6 +34,7 @@ window.gk2OpenSyncStatus = function () {
     const message = dialog.querySelector('[role="status"]');
     const pull = dialog.querySelector('[data-sync-pull]');
     const syncNow = dialog.querySelector('[data-sync-now]');
+    const exportHeld = dialog.querySelector('[data-sync-export]');
     const labels = {
         'merged-values-review': '合并后的成绩需要核对',
         'older-cloud-snapshot': '收到较旧的云端快照',
@@ -51,6 +53,7 @@ window.gk2OpenSyncStatus = function () {
         }
         const teacher = teacherStatus();
         if (teacher) count = teacher.pending;
+        exportHeld.hidden = !teacher?.held;
         const enabled = !!teacher || sync.isEnabled();
         const lastPushedAt = teacher ? teacher.lastPushedAt : store.state.syncMeta.lastPushedAt;
         const lastError = teacher ? teacher.error : store.state.syncMeta.lastError;
@@ -121,6 +124,16 @@ window.gk2OpenSyncStatus = function () {
             render();
         }
     }
+    exportHeld.onclick = () => {
+        const backup = { exportedAt:new Date().toISOString(), teacherId:window.__gakutenAuth.getAuth()?.teacherId,
+            changes:store.state.sharedTeacherHeldChanges || [] };
+        const url = URL.createObjectURL(new Blob([JSON.stringify(backup)],{type:'application/json'}));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'Gakuten-暂留成绩备份-' + Date.now() + '.json';
+        link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+    };
     syncNow.onclick = () => run(async () => {
         clearTimeout(store.saveTimeout);
         store.saveTimeout = null;
