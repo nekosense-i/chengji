@@ -172,8 +172,19 @@ const web = http.createServer((req, res) => {
         await templatePage.getByRole('button',{name:'确定创建'}).click();
         await templatePage.waitForFunction(()=>{
             const id=app.store.state.data.exams.find(exam=>exam.name==='新建后自动选中的考试')?.id;
-            return id && document.getElementById('global-exam').value===id && gk2.entryExamId===id;
-        });
+            const card=id && document.getElementById('e-card-'+id);
+            return card && !card.hidden && document.getElementById('global-exam').value===id &&
+                card.querySelector('input.score-input[data-eid="'+id+'"][data-field="听力"]')?.value==='';
+        },null,{timeout:7000});
+        const createdId = await templatePage.locator('#global-exam').inputValue();
+        await templatePage.locator('#gk2-current-exam-trigger').click();
+        await templatePage.locator('[role="option"][data-value="fixture-exam"]').click();
+        await templatePage.locator('#e-card-fixture-exam').waitFor({state:'visible'});
+        await templatePage.evaluate(id=>document.getElementById('e-card-'+id).remove(),createdId);
+        await templatePage.locator('#gk2-current-exam-trigger').click();
+        await templatePage.locator(`[role="option"][data-value="${createdId}"]`).click();
+        await templatePage.locator(`#e-card-${createdId} input.score-input[data-eid="${createdId}"]`).first().waitFor({state:'visible'});
+        assert.equal(await templatePage.locator('#e-card-fixture-exam').isVisible(),false);
         await templatePage.evaluate(() => {
             const {campus,grade,teachingClass} = app.store.state.data.students[0];
             const info = {id:'template-class',campus,grade,teachingClass,teachingCategory:'gaokao'};

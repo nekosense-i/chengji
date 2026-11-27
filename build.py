@@ -334,11 +334,18 @@ def build(destination):
         const sharedSource = auth?.sharedDirectory && e.teacherSources?.find(info=>info.campus===auth.campus &&
             info.grade===auth.grade && info.teachingClass===auth.classId);
         if (sharedSource) return !focus.tClasses.length || Object.values(e.teacherParticipants || {})
-            .some(place=>place.teachingClass===(sharedSource.examClass || auth.classId) &&
+            .some(place=>focus.tClasses.includes(place.teachingClass) &&
                 place.campus===(sharedSource.examCampus || auth.campus) &&
                 place.teachingCategory===sharedSource.teachingCategory);
         const examCampuses = this._getExamCampuses(e);''',1)
     core = core[:dropdown_start]+dropdown+core[dropdown_end:]
+    workflow_start = core.index('                renderExamsWorkflow() {')
+    workflow_end = core.index('                    validExams.sort(', workflow_start)
+    filter_start = core.index('                    let validExams =', workflow_start, workflow_end)
+    core = core[:filter_start] + '''                    const available = new Set(Array.from(document.getElementById('global-exam').options, option=>option.value));
+                    const validExams = this.store.state.data.exams.filter(exam=>available.has(exam.id));
+
+''' + core[workflow_end:]
     merge_anchor = 'const ack=await this.postCloud(merged,d);'
     if core.count(merge_anchor) != 1:
         raise RuntimeError('Sync merge anchor changed')
@@ -486,6 +493,10 @@ def build(destination):
     core = core.replace(total_anchor, '  this._mergeDerivedTotal(a,b,out);\n' + total_anchor, 1)
     features_path = re.search(r'assets/app/features\.[a-f0-9]+\.js', html)[0]
     features = (ROOT / features_path).read_text()
+    entry_switch = "if(this.cur==='exams'){G.entryExamId=this.store.state.currentExamId;G.entry(true);}G.syncShell();"
+    if features.count(entry_switch) != 1:
+        raise RuntimeError('Exam entry switch anchor changed')
+    features = features.replace(entry_switch, "if(this.cur==='exams')this.renderExamsWorkflow();G.syncShell();", 1)
     entry_labels_anchor = "const labels=[['已录入','已录入','is-entered']"
     if features.count(entry_labels_anchor) != 1:
         raise RuntimeError('Production class clear state anchor changed')
