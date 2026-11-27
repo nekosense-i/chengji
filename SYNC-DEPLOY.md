@@ -9,7 +9,7 @@ Gakuten 阿里云同步优化（2026-11-06）
 - 上传确认核验房间、操作 ID、提交时间、revision 和完整数据结构，并应用后端实际合并结果。等待队列存在时显示待同步。
 - 自动分项总分合并对齐现有后端规则；历史手工总分及缺考记录保持既有处理方式。
 
-本地构建：`python3 build.py`。入口只更新 core / features 两个内容哈希引用；`src/release/Gakuten-2.0.base.html` 及其引用的已有资源是受版本管理的构建输入。原维护构建器和旧源码保留在本地，本次不使用。
+本地构建：`python3 build.py`。构建器会更新内容哈希资源引用；`src/release/Gakuten-2.0.base.html` 及其引用的已有资源是受版本管理的构建输入。部署预检逐项核对模板、构建页和线上页的 app 资源引用，确认线上旧资源与提交中的版本一致后，只上传变化的 bundle 并最后替换入口。原维护构建器和旧源码保留在本地，本次不使用。
 
 验证使用现有 `tests/fixtures/statistics.json`、两个隔离 Chromium 上下文和现有后端 `createApp`，SQLite 只在内存中运行，不访问真实成绩。单个针对性测试为 `tests/test-aliyun-sync.cjs`，参数依次为构建目录、后端仓库路径；需要 Node 24 和 Playwright。覆盖连续输入、并发及乱序写入、分项/总分、历史手工总分、删除与新增、请求中继续编辑、响应丢失、断网/重开/重连、数据库完整性。后端已有 51 项测试全部通过；macOS 运行时 TMPDIR 需指向实体路径，避免 `/var` 与 `/private/var` 的路径断言差异。
 

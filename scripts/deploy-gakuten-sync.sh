@@ -44,15 +44,20 @@ assert hashlib.sha256(live_html).hexdigest()=='8cc395df692096ad543a569616fe948e6
 html=(stage/'Gakuten-2.0.html').read_text()
 old=live_html.decode()
 expected=base.decode()
+app_pattern=r'((?:src|href)=")((?:assets/app/)[^"]+)(")'
+base_refs=re.findall(app_pattern,expected)
+new_refs=re.findall(app_pattern,html)
+old_refs=re.findall(app_pattern,old)
+assert len(base_refs)==len(new_refs)==len(old_refs), 'App asset reference count changed'
 changed=[]
-for kind in ['styles','core','features']:
- extension='css' if kind=='styles' else 'js'
- pattern=r'assets/app/'+kind+r'\.[a-f0-9]+\.'+extension
- prior=re.search(pattern,old)[0]; current=re.search(pattern,html)[0]
- assert (live/prior).read_bytes()==(stage/prior).read_bytes(), 'Production '+kind+' changed'
- assert hashlib.sha256((stage/current).read_bytes()).hexdigest()[:16] in current, 'Invalid generated asset hash'
- expected=re.sub(pattern,lambda _: current,expected,count=1)
- changed.append(current)
+for (_,prior,_),(_,current,_) in zip(old_refs,new_refs):
+ assert (live/prior).read_bytes()==(stage/prior).read_bytes(), 'Production asset changed: '+prior
+ content=(stage/current).read_bytes()
+ assert hashlib.sha256(content).hexdigest()[:16]==current.rsplit('.',2)[-2], 'Invalid app asset hash: '+current
+ if prior!=current and current not in changed:
+  changed.append(current)
+expected_refs=iter(current for _,current,_ in new_refs)
+expected=re.sub(app_pattern,lambda match: match.group(1)+next(expected_refs)+match.group(3),expected)
 assert expected==html, 'Unexpected HTML modification'
 for asset in re.findall(r'(?:src|href)="(assets/[^"?#]+)',html):
  assert (stage/asset).is_file(), 'Missing release asset: '+asset
