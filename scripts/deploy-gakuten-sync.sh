@@ -23,7 +23,8 @@ commit=${2:?Specify the exact tested Git commit}
 [[ -f "$live/Gakuten-2.0.html" ]]
 sudo test -f "$database"
 systemctl is-active --quiet nekosync-prod.service
-printf '%s\n' '91fb9b245bfc997cb5d93f24dd1e6675b440b6d5e150ae0601a06093863e37af  /opt/nekosensei-sync-prod/src/gakuten-service.js' | sha256sum --check --status
+# Production adapter matches nekosensei-sync-server commit c0dc738ad7294b62734a09bd62f1ad4b2e039afe.
+printf '%s\n' '5546c1b6a99badf28e661319c7cd8407175790b63050b9e020112b6296738d69  /opt/nekosensei-sync-prod/src/gakuten-service.js' | sha256sum --check --status
 printf '%s\n' '832ff4e802a7796f75d8ae61a31cb05e04a8bf1c3af6245e7d6c27abe1b735fc  /opt/nekosensei-sync-prod/src/gakuten-merge.js' | sha256sum --check --status
 git cat-file -e "$commit^{commit}"
 remote=$(git remote get-url origin)
