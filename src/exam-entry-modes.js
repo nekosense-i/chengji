@@ -9,6 +9,10 @@
         if (Object.hasOwn(labels, saved)) defaultMode = saved;
     } catch {}
 
+    UI.prototype.reloadTeacherEntryDefault = () => {
+        const saved = localStorage.getItem(preferenceKey);
+        defaultMode = Object.hasOwn(labels,saved) ? saved : null;
+    };
     UI.prototype.getExamEntryDefault = () => defaultMode;
     UI.prototype._getExamEntryMode = function(exam) {
         if (!this._hasCountEntryTypes(exam?.types)) return 'score';

@@ -58,21 +58,24 @@ def build(destination):
   window.gk2SharedTeacherGradesReady = true;
  }''', 1)
     environment = environment.replace("window.gk2LegacySeed=nativeLocal.getItem", "window.gk2LegacySeed=testMode || window.gk2TeacherWorkspaceId ? null : nativeLocal.getItem", 1)
-    environment = environment.replace('getItem:k=>storage.getItem(prefix+k)', "getItem:k=>testMode && k==='gakuten_cloud_sync_disabled' ? '1' : storage.getItem(prefix+k)", 1)
+    environment = environment.replace(' function scoped(storage)', (ROOT / 'src/teacher-preference-storage.js').read_text() + '\n function scoped(storage)',1)
+    environment = environment.replace('storage.getItem(prefix+k),setItem:(k,v)=>storage.setItem(prefix+k,String(v))',
+                                      'storage.getItem(preferenceKey(storage,k)),setItem:(k,v)=>writePreference(storage,k,v)',1)
+    environment = environment.replace('getItem:k=>storage.getItem(preferenceKey(storage,k))', "getItem:k=>testMode && k==='gakuten_cloud_sync_disabled' ? '1' : storage.getItem(preferenceKey(storage,k))", 1)
     environment = environment.replace('window.fetch=async(input,options={})=>{', "window.fetch=async(input,options={})=>{\n  if(testMode) throw new DOMException('测试模式仅使用本机数据', 'SecurityError');", 1)
     environment = environment.replace(
         "const url=new URL(typeof input==='string'?input:input.url),method=String(options.method||input?.method||'GET').toUpperCase();",
         r'''const url=new URL(typeof input==='string'?input:input.url,location.href),method=String(options.method||input?.method||'GET').toUpperCase();
   if (location.protocol==='file:' && url.origin==='https://gakupo.nekosensei.cn' &&
       !url.username && !url.password && !url.search && !url.hash &&
-      (/^\/api\/(roster|roster-import|teachers|gakuten-templates)$/.test(url.pathname) && ['GET','POST'].includes(method) ||
+      (/^\/api\/(roster|roster-import|teachers|gakuten-templates|gakuten-preferences)$/.test(url.pathname) && ['GET','POST'].includes(method) ||
        url.pathname==='/api/session' && ['POST','DELETE'].includes(method))) {
     return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
   }
   if (location.protocol==='file:' && url.href==='https://chengji.nekosensei.cn/gakuten-teacher-grades' &&
       ['GET','POST'].includes(method)) return nativeFetch(input,{...options,redirect:'error',credentials:'omit'});
   if (url.origin===location.origin && location.hostname==='chengji.nekosensei.cn' && !url.search && !url.hash && (
-      /^\/gakupo-directory\/(session|roster|roster-import|teachers|gakuten-templates)$/.test(url.pathname) &&
+      /^\/gakupo-directory\/(session|roster|roster-import|teachers|gakuten-templates|gakuten-preferences)$/.test(url.pathname) &&
           (['GET','POST'].includes(method) || method==='DELETE' && url.pathname.endsWith('/session')) ||
       url.pathname==='/gakuten-teacher-grades' && ['GET','POST'].includes(method)
   )) return nativeFetch(input,{...options,redirect:'error',credentials:'same-origin'});''',1)
@@ -456,6 +459,7 @@ def build(destination):
     features = features.replace("if(head){head.style.pointerEvents=teacher?'none':'';head.style.opacity=teacher?'.68':'';head.setAttribute('aria-disabled',String(teacher));}",
                                 "if(head){const locked=teacher&&!auth()?.sharedDirectory;head.style.pointerEvents=locked?'none':'';head.style.opacity=locked?'.68':'';head.setAttribute('aria-disabled',String(locked));}",1)
     features += '\n' + (ROOT / 'src/release-account.js').read_text()
+    features += '\n' + (ROOT / 'src/teacher-preferences.js').read_text()
     styles_path = re.search(r'assets/app/styles\.[a-f0-9]+\.css', html)[0]
     styles = (ROOT / styles_path).read_text()
     idle_scope_shadow = 'box-shadow:0 1px 2px rgba(49,91,145,.055);'
